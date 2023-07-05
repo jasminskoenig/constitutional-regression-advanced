@@ -1,0 +1,8 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.secrets
+data/partyfacts-mapping.csv
+results/nul
+codebooks/

@@ -1,0 +1,229 @@
+---
+title: Constitutional Change Under Populist Governments
+title-slide-attributes:
+  data-background-image: images/logos_combined.png
+  data-background-size: stretch
+  data-slide-number: none
+format: revealjs
+auto-stretch: false
+---
+
+# Overview {.theme-section1 .h1}
+
+## This Paper {.smaller}
+
+**Research Question**
+
+-   Do Constitutional Courts Increase Their PR Activity When Facing Populist Legislators?
+
+**Theory**
+
+-   Verbal attacks on the court or an evasion is more likely when legislation by populists is invalidated
+-   Press-related activity allows the court to counter narrate
+    -   Pressure on Coalition Partner
+
+**Data**
+
+-   Judicial Review, Press Releases & Public Hearings in Austria 2006 - 2021
+
+**Research Design**
+
+-   Mixed-Effects Model
+
+## This Paper {.smaller visibility="uncounted"}
+
+**Research Question**
+
+-   Do Constitutional Courts Increase Their PR Activity When Facing Populist Legislators?
+
+[**Theory**]{.rose}
+
+-   Verbal attacks on the court or an evasion is more likely when legislation by populists is invalidated
+-   Press-related activity allows the court to counter narrate
+    -   Pressure on Coalition Partner
+
+**Data**
+
+-   Judicial Review, Press Releases & Public Hearings in Austria 2006 - 2021
+
+**Research Design**
+
+-   Mixed-Effects Model
+
+# Theory {.smaller}
+
+## Populism as a Challenge to Courts
+
+**Populism clashes with constitutional democracy**
+
+**The people vs the elite**
+
+## Populism as a Challenge to Courts {visibility="uncounted"}
+
+**Populism clashes with constitutional democracy**
+
+-   Democratic ideal of populism is popular sovereignty (Abts and\
+    Rummens, 2007)
+
+-   No constraints on the implementation of the "general will"\
+    (Kaltwasser, 2012)\
+    • Judicial review, supranational institutions, \...
+
+::: {.fragment .fade-in style="text-indent: 5%;"}
+[**Evasion more likely**]{.rose}
+:::
+
+## Populism as a Challenge to Courts
+
+**Populism clashes with constitutional democracy**
+
+**The people vs the elite**
+
+## Populism as a Challenge to Courts {visibility="uncounted"}
+
+**The people vs the elite**
+
+-   Anti-elite narrative against non-majoritarian institutions
+
+::: {.fragment .fade-in style="text-indent: 5%;"}
+[**Verbal attacks on the court more likely**]{.rose}
+:::
+
+## Judicial Politics Literature
+
+**Legitimacy**
+
+-   Verbal attacks can undermine the court's legitimacy
+
+**Transparency can increase resilience**
+
+-   Press Realeases and Oral Hearings can increase coverage of constiutional court decisions (Staton 2010, Krehbiel 2016, Gauri et al. 2015)
+
+-   If people know about a decision, they can enforce compliance at the ballot box (Vanberg 2001)
+
+## Mechanism
+
+![](images/mechanism/Folie2.png){.absolute}
+
+## Mechanism {visibility="uncounted"}
+
+![](images/mechanism/Folie3.png){.absolute}
+
+## Mechanism {visibility="uncounted"}
+
+![](images/mechanism/Folie5.png){.absolute}
+
+## Mechanism {visibility="uncounted"}
+
+![](images/mechanism/Folie4.png){.absolute}
+
+## Hypotheses
+
+<br>
+
+<br>
+
+::: {style="text-indent: 5%;"}
+[**Hypothesis:** When invalidating laws from populist legislators,]{.rose}
+:::
+
+::: {style="text-indent: 5%;"}
+[the court is more likely to issue a press release and to hold]{.rose}
+:::
+
+::: {.rose style="text-indent: 5%;"}
+public hearings.
+:::
+
+# Empirics
+
+## Case Selection
+
+-   **Austria** is a prominent example of populist government participation
+-   **FPÖ** & **BZÖ** prototypical examples of right-wing populism (Mudde 2013, Pelinka 2013)
+
+![](images/kurzi.jpg){.absolute left="250" width="500"}
+
+## Case Selection
+
+-   **Independent** Constitutional Court (Lachmayer 2017)
+
+-   High **trust** in the Austrian Constitutional Court (OMG 2022)
+
+![](images/vfgh.jpg)
+
+## Data
+
+**Judicial Review in Austria 2006 - 2021**
+
+-   Unit of Analysis: Law under Review
+-   \> 1000 cases
+-   Dummy for Press Release (unfinished) & Public Hearing
+-   Dummy for populist legislator
+
+## Data
+
+![](images/histogram.png)
+
+## Estimation
+
+**Dependent Variable**
+
+-   Press Release Dummy
+-   Public Hearing Dummy
+
+**Independent Variable**
+
+-   Populist Legislator
+-   Interaction Populist Legislator x Decision
+
+## Estimation {visibility="uncounted"}
+
+**Dependent Variable**
+
+-   Press Release Dummy
+-   Public Hearing Dummy
+
+**Independent Variable**
+
+-   Populist Legislator
+-   [Interaction Populist Legislator x Decision]{.rose}
+
+## Estimation
+
+**Fixed-Effects Model**
+
+-   Fixed-Effects for Court President
+
+**Mixed-Effects Model**
+
+-   Random Intercepts for Court President
+-   Random Intercepts for Decision
+    -   Multiple Laws can be reviewed in one decision
+
+## Descriptive Results
+
+![](images/shares.png)
+
+## Regression Model
+
+![](images/regression.jpg){.absolute left=250 height="600"}
+
+## Regression Model {visibility="uncounted"}
+
+![](images/regression_populism.JPG){.absolute left=250 height="600"}
+
+## Regression Model
+
+![](images/regression_controls.jpg){.absolute left=250}
+
+## Regression Model
+
+![](images/regression_kurz.jpg){.absolute left=250 height="600"}
+## Conclusion
+
+- So far, no evidence for increased PR-activity when facing populists
+- Might be due to small number of cases 
+- Implications that court only worries if there is no coalition partner to moderate populists
+
+#  Thank You!

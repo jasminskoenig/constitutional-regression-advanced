@@ -1,0 +1,4 @@
+- source: index.qmd
+  quarto-pub:
+    - id: 6e06f375-1174-4f66-98e3-0ef3f16a2e6e
+      url: 'https://quartopub.com/sites/jasminskoenig/mpsa_final'

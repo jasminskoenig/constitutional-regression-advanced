@@ -1,0 +1,14 @@
+institute: "Universität Hamburg <br> Regieren in politischen Mehrebenensystemen <br>Aufbaumodul 1"
+author: "Jasmin Sarah König"
+footer: "[🔗 https://jasminskoenig.quarto.pub/am1-populismus/](https://jasminskoenig.quarto.pub/am1-populismus/)"
+format:
+  revealjs:
+    theme: slides.scss
+    transition: fade
+    slide-number: true
+    chalkboard: true
+    controls: true
+editor: visual
+execute:
+  freeze: auto
+  echo: true
