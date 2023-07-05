@@ -99,6 +99,17 @@ color: #464a53;
   overflow-y: auto;
 }
 
+.reveal .slide .quote {
+  padding-right: 10px;
+  padding-left: 10px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  margin-bottom: 6px;
+  margin-top: 6px;
+  border-left: solid 5px #263f3f;
+  background-color: #CEC3C1;
+}
+
 .theme-section1 {
   &:is(.slide-background) {
     background-color: $theme-darkslate;

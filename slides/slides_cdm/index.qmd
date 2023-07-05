@@ -12,13 +12,13 @@ auto-stretch: false
 
 ## This Paper {.smaller}
 
-**Research Question**
+#### Research Question
 
 -   How do populist parties in power use constitutional changes?
 
 
 ::: fragment
-**Theory**
+#### Theory
 
 - More Constitutional Changes under populist government
 - Effects differ with what aspect of democracy is considered
@@ -27,7 +27,7 @@ auto-stretch: false
 
 
 ::: fragment
-**Data**
+#### Data
 
 - V-Party, V-Dem & Comparative Constitutions Project
 - Country-Year Observations from 1990-2020
@@ -36,7 +36,7 @@ auto-stretch: false
 
 :::fragment
 
-**Research Design**
+#### Research Design
 
 -   Multi-Level Model with Country-Intercepts
 
@@ -44,11 +44,55 @@ auto-stretch: false
 
 # Theory {.theme-section1}
 
-## Populism & Constitutional Change 
+## Populism
+
+Preference for a different democratic system
 
 
+## Populism & Constitutional Change {.smaller}
+
+::: fragment
+Populism as a different understanding of constitutionalism
+
+- Constitutions are  political 
+- Mirror the will of the people
+- No need for stable checks & balances
+
+
+:::
+
+::: fragment
+
+::: quote
+
+“Constituent power, rather than being the power of the multitude, 
+becomes the power of the majority.” (Blokker 2019)
+
+:::
+
+:::
+
+## Populism & Constitutional Change {.smaller visibility="uncounted"}
+
+Populism as a different understanding of constitutionalism
+
+- Constitutions are  political 
+- Mirror the will of the people
+- No need for stable checks & balances
+
+::: fragment
+Populism as a danger to constitutionalism
+
+- 
+- 
+
+:::
 
 ## Effects on Democratic Quality
+
+Negative Effects on Liberal Democratic Quality
+
+Positive Effects on Participation and Egalitarian Democracy
 
 
 ## Effects on Democratic Quality
