@@ -42,7 +42,7 @@ auto-stretch: false
 
 :::
 
-# Theory {.smaller}
+# Theory {.theme-section1}
 
 ## Populism & Constitutional Change 
 
@@ -55,7 +55,7 @@ auto-stretch: false
 
 Gal/Tan + Left/Right
 
-# Research Design
+# Research Design {.theme-section1}
 
 ## Defining Populism in Power
 
@@ -65,45 +65,7 @@ Gal/Tan + Left/Right
 
 
 
-## Judicial Politics Literature
-
-
-
-## Mechanism
-
-
-
-## Mechanism {visibility="uncounted"}
-
-
-
-## Mechanism {visibility="uncounted"}
-
-
-
-## Mechanism {visibility="uncounted"}
-
-
-
-## Hypotheses
-
-
-
-# Empirics
-
-## Case Selection
-
-
-
-## Case Selection
-
-
-
-## Data
-
-
-
-## Data
+## Estimation 
 
 
 
@@ -142,6 +104,8 @@ Gal/Tan + Left/Right
 -   Random Intercepts for Court President
 -   Random Intercepts for Decision
     -   Multiple Laws can be reviewed in one decision
+    
+# Results {.theme-section1}
 
 ## Descriptive Results
 
@@ -151,15 +115,9 @@ Gal/Tan + Left/Right
 
 
 
-## Regression Model {visibility="uncounted"}
-
-
-
 ## Regression Model
 
-
-
-## Regression Model
+## However
 
 
 ## Conclusion
