@@ -4,11 +4,10 @@ title-slide-attributes:
   data-background-image: images/logos_combined.png
   data-background-size: stretch
   data-slide-number: none
-format: revealjs
 auto-stretch: false
 ---
 
-# Overview {.theme-section1 .h1}
+# Overview {.theme-section1}
 
 ## This Paper {.smaller}
 
