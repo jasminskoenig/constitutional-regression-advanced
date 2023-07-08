@@ -7,7 +7,7 @@ title-slide-attributes:
 auto-stretch: false
 ---
 
-# Overview {.theme-section1 .h1}
+# Overview {.theme-section1}
 
 ## This Paper {.smaller}
 
