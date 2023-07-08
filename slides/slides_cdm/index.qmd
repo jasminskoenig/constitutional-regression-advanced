@@ -4,7 +4,6 @@ title-slide-attributes:
   data-background-image: images/logos_combined.png
   data-background-size: stretch
   data-slide-number: none
-format: revealjs
 auto-stretch: false
 ---
 

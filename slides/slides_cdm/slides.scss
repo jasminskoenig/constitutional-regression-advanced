@@ -1,6 +1,6 @@
 /*-- scss:defaults --*/
-  
-  // fonts
+
+// fonts
 @import url('https://fonts.googleapis.com/css?family=Rajdhani&display=swap');
 @import url('https://fonts.googleapis.com/css?family=Source+Code+Pro&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap');
@@ -13,42 +13,42 @@ $theme-blue: #689295;
 $theme-silver: #CEC3C1;
 $theme-darkslate: #263f3f;
 $presentation-title-slide-text-color: $theme-darkslate;
-  $code-block-font-size: 0.7em;
+$code-block-font-size: 0.7em;
 $presentation-h2-font-size: 1.4em !default;
 $presentation-font-size-root: 36px !default;
 $presentation-heading-color: $theme-darkslate !default;
 $link-color: $theme-rose;
 $code-color: $theme-blue;
 
-  
-  /*-- scss:rules --*/
-  
-  details>summary {
-    font-size: 0.75em;
-  }
+
+/*-- scss:rules --*/
+
+details>summary {
+  font-size: 0.75em;
+}
 
 #title-slide .subtitle {
-color: #464a53;
+  color: #464a53;
   font-weight: bold;
-text-align: center;
-font-size: 25px
+  text-align: center;
+  font-size: 25px
 }
 
 #title-slide .title {
-text-align: center;
-color: #464a53;
+  text-align: center;
+  color: #464a53;
   font-size: 30px
 }
 
 #title-slide .quarto-title-author {
-text-align: center;
-color: #464a53;
+  text-align: center;
+  color: #464a53;
   font-size: 20px;
 }
 
 #title-slide .institute {
-text-align: center;
-color: #464a53;
+  text-align: center;
+  color: #464a53;
   font-size: 20px;
 }
 
@@ -114,12 +114,10 @@ color: #464a53;
   &:is(.slide-background) {
     background-color: $theme-darkslate;
   }
-  
-  .reveal h1 {
-  color: $theme-silver;
-  
-}
 
+  h1 {
+    color: $theme-silver !important;
+  }
 }
 
 h1 {
