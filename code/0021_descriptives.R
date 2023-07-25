@@ -16,7 +16,7 @@ governmentdata <- readRDS("data/ccpc_vdem_eu_la.rds")
 
 ## Theme ----
 
-theme_gridY <- theme_ipsum_rc(grid = "Y") +
+theme_gridY <- theme_ipsum_rc(grid = "") +
   theme(
     axis.text = element_text(size = 14),
     axis.title.x = element_text(size = 18),
@@ -26,12 +26,33 @@ theme_gridY <- theme_ipsum_rc(grid = "Y") +
     legend.text = element_text(size = 12),
     legend.title = element_text(size = 12),
     legend.key.size = unit(0.5, "cm"),
-    plot.margin = grid::unit(c(1, 0.5, 0.5, 0), "mm"),
-    panel.border = element_rect(colour = "darkgrey", fill = NA, linewidth = 1)
+    plot.margin = grid::unit(c(1, 2, 0.5, 0), "mm"),
+    panel.border = element_rect(colour = "darkgrey", fill = NA, linewidth = 1),
+    text = element_text(family = "Rajdhani")
   )
 
-theme_set(theme_gridY)
+theme_pres <- theme_ipsum_rc(grid = "") +
+  theme(
+    axis.text.y = element_text(size = 120),
+    axis.text.x = element_text(size = 120),
+    axis.title.x = element_text(size = 120, family = "rajdhani"),
+    axis.title.y.left = element_text(size = 120, family = "rajdhani"),
+    strip.text = element_text(size = 25),
+    legend.position = "bottom",
+    legend.text = element_text(size = 120),
+    legend.title = element_text(size = 120),
+    legend.key.size = unit(1, "cm"),
+    plot.caption = element_text(size = 120, family = "rajdhani", face = "plain", hjust = 0.5),
+    plot.margin = grid::unit(c(1, 2, 0.5, 0), "mm"),
+    panel.border = element_rect(colour = "darkgrey", fill = NA, linewidth = 1),
+    text = element_text(family = "rajdhani")
+  )
 
+theme_set(theme_pres)
+
+library(showtext)
+font_add_google(family = "rajdhani", name = "Rajdhani")
+showtext_auto()
 
 # Validity of Policy Indice ----
 
@@ -63,7 +84,9 @@ cor.test(partydata$gal, partydata$galtan,  method = "pearson", use = "complete.o
 ## Correlation ----
 
 governmentdata |>  
-  filter(!is.na(gov_popul_weighted) & !is.na(ruth_populism)) ->
+  filter(!is.na(gov_popul_weighted) & !is.na(ruth_populism)) |> 
+  mutate(matches = if_else(gov_popul_prime > 0.5 & ruth_populism == 0 |
+           gov_popul_prime < 0.5 & ruth_populism == 1, "FALSE", "TRUE")) ->
   gov_filtered
   
 validate_populism <- glm(ruth_populism ~ gov_popul_prime, data = gov_filtered)
@@ -73,14 +96,23 @@ pred <- predict(validate_populism, type = "response")
 pred_df <- data.frame(gov_popul_prime = gov_filtered$gov_popul_weighted, pred)
 
 ggplot(gov_filtered, aes(x = gov_popul_prime, y = ruth_populism)) +
-  geom_point(aes(color = gov_popul_prime > 0.5 & ruth_populism == 0 |
-                   gov_popul_prime < 0.5 & ruth_populism == 1)) +
+  geom_point(aes(color = matches,
+                 shape = matches),
+             size = 8) +
   geom_smooth(method = "glm", 
               method.args = list(family = "binomial"),
               se = FALSE,
               color = "darkslategrey") +
-  scale_color_viridis_d(labels = c("Correct", "False")) +
-  labs(color = "Matches Ruth-Lovell/Grahn")
+  scale_color_manual(values = c("#689295", "#263f3f")) +
+  labs(color = "Matches Ruth-Lovell/Grahn",
+       shape = "Matches Ruth-Lovell/Grahn",
+       y = "Binary Populism Score",
+       x = "Continuous Populism Score",
+       caption = "\nLogistic Regression Predicting Binary Populism Score from Weighted Populism Score. Correlation = 0.74.")
+
+ggsave("results/graphs/liberaldem_interaction.pdf", width = 45, height = 6, units = "in", dev = cairo_pdf)
+ggsave("slides/slides_cdm/images/populism_validity.png", width = 24, height = 14, units = "in", dev = "png")
+
 
 gov_filtered |> 
   filter(gov_popul_weighted > 0.5 & ruth_populism == 0 |
@@ -127,3 +159,34 @@ governmentdata |>
   mutate(dummy = as.factor(if_else(gov_rile_weighted > -8 & gov_rile_weighted < 8, 1, 0))) |> 
   ggplot() +
   geom_histogram(aes(gov_rile_weighted, fill = dummy, group = dummy), binwidth = 2)
+
+# Histogram
+
+governmentdata |> 
+  filter(!is.na(evnt)) |> 
+  mutate(evnt = if_else(evnt == 1, "Yes", "No")) |> 
+  ggplot() +
+  geom_histogram(aes(gov_popul_weighted, fill = as.factor(evnt), group = as.factor(evnt)),
+                 binwidth = 0.01) +
+  labs(x = "Weighted Populism Score",
+       y = "",
+       fill = "Constitutional Change",
+       caption = "\nHistogram of Continuous Weighted Government Score") +
+  scale_fill_manual(values = c("#689295", "#263f3f"))
+
+ggsave("slides/slides_cdm/images/weightedscore.png", width = 16, height = 10, units = "in", dev = "png")
+
+
+governmentdata |> 
+  filter(!is.na(evnt)) |> 
+  mutate(evnt = if_else(evnt == 1, "Yes", "No")) |> 
+  ggplot() +
+  geom_histogram(aes(ruth_populism, fill = as.factor(evnt), group = as.factor(evnt)),
+                 binwidth = 0.01) +
+  labs(x = "Weighted Populism Score",
+       y = "",
+       fill = "Constitutional Change",
+       caption = "\nHistogram of Continuous Weighted Government Score") +
+  scale_fill_manual(values = c("#689295", "#263f3f"))
+
+ggsave("slides/slides_cdm/images/ruthscore.png", width = 16, height = 10, units = "in", dev = "png")

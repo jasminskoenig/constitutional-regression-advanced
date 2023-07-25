@@ -1,0 +1,4 @@
+- source: index.qmd
+  quarto-pub:
+    - id: fc5910bc-70f3-4118-89ee-16d7bd0f0aaf
+      url: 'https://jasminskoenig.quarto.pub/cdm_presentation'

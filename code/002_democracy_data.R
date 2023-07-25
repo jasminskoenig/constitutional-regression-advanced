@@ -16,7 +16,7 @@ vdem %>%
   vdem2
 
 vdem2 %>% 
-  dplyr::select(country_name, year, country_id, e_regiongeo, v2x_polyarchy,
+  dplyr::select(country_name, year, country_id, e_regiongeo, v2x_polyarchy, v2x_partip, v2xdd_i_pl,
          v2x_libdem, v2x_delibdem, v2x_egaldem, v2x_liberal, v2xcl_rol, v2x_cspart,
          v2x_jucon, v2jureform, v2jupurge, v2jupoatck, v2jupack,
          v2juaccnt, v2jucorrdc, v2juhcind, v2juncind, v2juhccomp,
@@ -138,7 +138,7 @@ ccpc |>
 # import names of rights in dataset
 
 # use the codebook of ccp to create a list of rights in constitutions
-rightsindex <- readtext("codebooks/rightsindex_ccp.pdf") %>%
+rightsindex <- readtext("codebooks/rightsindex_ccp.pdf") |> 
   select(-doc_id) %>%
   mutate(text = str_remove_all(text, "ID\\b")) %>%
   mutate(text = str_extract_all(text, "[:upper:]{2,}\\d{0,}")) %>%

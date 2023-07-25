@@ -1,11 +1,17 @@
 # Set-up ----
 
+## Libraries ----
 library(tidyverse)
 library(stargazer)
+library(modelsummary)
+library(kableExtra)
+library(gt)
 library(lme4)
 library(gtsummary)
 library(ggplot2)
 library(hrbrthemes)
+library(ggtext)
+library(showtext)
 # clustered standard errors
 library(estimatr)
 # matt kay kind of plotting
@@ -17,44 +23,34 @@ library(broom.mixed)
 # for tilko kind of plotting
 library(margins)
 
+## Theme for Plots ----
 
-# library(rms)
-# library(interplot)
-# library(hrbrthemes)
-# library(lme4)
-# library(margins)
-# library(broom.mixed)
-# library(gridExtra)
-# library(margins)
-# library(grid)
-# library(patchwork)
-# library(gtsummary)
-# library(ggeffects)
-# library(ggdist)
-# library(distributional)
-# library(modelr)
-# library(interactions)
-# extrafont::loadfonts()
-
-theme_gridY <- theme_ipsum_rc(grid = "Y") +
+theme_gridY <- theme_ipsum_rc(grid = "") +
   theme(
-    axis.title.x = element_text(size = 14),
-    axis.text.x = element_text(size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.title.y.left = element_text(size = 14),
-    strip.text = element_text(size = 14),
-    plot.title = element_text(size = 18),
-    plot.subtitle = element_text(size = 16),
+    axis.title.x = element_text(size = 30, family = "rajdhani"),
+    axis.text.x = element_text(size = 30, family = "rajdhani"),
+    axis.text.y = element_markdown(size = 30, family = "rajdhani"),
+    axis.title.y.left = element_text(size = 30, family = "rajdhani"),
+    strip.text = element_text(size = 34, family = "rajdhani"),
+    plot.title = element_text(size = 31, family = "rajdhani"),
+    plot.subtitle = element_text(size = 31, family = "rajdhani"),
+    plot.caption = element_text(size = 28, family = "rajdhani", face = "plain", hjust = 0.5),
     legend.position = "bottom",
-    legend.text = element_text(size = 16),
-    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 31, family = "rajdhani"),
+    legend.title = element_text(size = 30, family = "rajdhani"),
     legend.key.size = unit(0.5, "cm"),
-    plot.margin = grid::unit(c(1, 0.5, 0.5, 0), "mm"),
-    panel.border = element_rect(colour = "darkgrey", fill = NA, linewidth = 1)
+    plot.margin = grid::unit(c(0, 0.5, 0.5, 0), "mm"),
+    panel.border = element_rect(colour = "darkgrey", fill = NA, linewidth = 1),
+    text = element_text(family = "rajdhani")
   )
 
 # set theme
 theme_set(theme_gridY)
+
+# add font style
+font_add_google(family = "rajdhani", name = "Rajdhani")
+showtext_auto()
+
 
 # Data ----
 
@@ -64,7 +60,7 @@ ccpc_vdem <- readRDS("data/ccpc_vdem_eu_la.rds")
 # Filter Data
 
 ccpc_vdem|>
-  # at time of analysis dataset only had data till 2020, 1990 democratization in ee
+  # at time of analysis dataset only had data till 3030, 1990 democratization in ee
   filter(
     year > 1990,
     # exclude closed autocracies
@@ -79,8 +75,10 @@ ccpc_vdem|>
 ccpc_vdem %>%
   filter(e_regiongeo %in% c(1:4, 17:18)) |>
   # create dummy for interaction effect
-  mutate(latin = if_else(e_regiongeo %in% c(17, 18), 1, 0),
-         lagged_v2x_libdem = lag(v2x_libdem)) ->
+  mutate(latin = if_else(e_regiongeo %in% c(17, 18), 1, 0)) |> 
+  mutate(across(starts_with("v2x"), 
+         .fns = ~ . - lag(.),
+         .names = "lagged_{.col}")) ->
   df4
 
 
@@ -92,101 +90,138 @@ ccpc_vdem %>%
 
 #### Regression Function ----
 
-reg_evnt <- function(predictor){
+reg_evnt_models <- function(predictor, interaction1, interaction2, df){
   
-  # are constitutional events more likely under populist governments?
-  m_const_lm <- lm(lead(evnt, 1) ~ predictor, data = df4)
-  m_const_ml_reg <- m_const_lm |> 
-    tbl_regression()
+  # Runs base, mixed-effect and fixed-effect models to predict constitutional change
+  # Returns list of regressions
+  # Single regressions can be accessed like this: models$`Mixed Interaction` afterwards
   
-  # Random Country Intercepts
-  m_const_intercept <- lmer(lead(evnt, 1) ~ predictor + (1 | country), data = df4) 
-  m_const_intercept_reg <- m_const_intercept |> 
-    tbl_regression()
+  models <- list(
+    "Base" = lm(lead(evnt, 1) ~ predictor, data = df),
+    "Mixed" = lmer(lead(evnt, 1) ~ predictor + (1 | country), data = df),
+    "Mixed Controls" = lmer(lead(evnt, 1) ~ predictor + interaction1 + v2xnp_pres + lagged_v2x_libdem + coalition + (1 | country), data = df),
+    "Mixed Interaction" = lmer(lead(evnt, 1) ~ predictor * interaction1 + interaction1 + v2xnp_pres + lagged_v2x_libdem + coalition + surplus + (1 | country), data = df),
+    "Fixed"     = glm(lead(evnt,1) ~ predictor + country, data = df),
+    "Fixed Controls" = glm(lead(evnt,1) ~ predictor + interaction1 + coalition + country, data = df),
+    "Fixed Interaction" = glm(lead(evnt,1) ~ predictor + interaction1 + coalition + lagged_v2x_libdem + predictor*interaction1 + country, data = df)
+  )
   
-  # Random Country Intercepts & Interaction with rile
-  m_const_int <- lmer(lead(evnt, 1) ~ predictor * gov_left + (1 | country), data = df4)
-  m_const_int_reg <- m_const_int |> 
-    tbl_regression()
-  
-  # as fixed effect
-  m_const_fe <- glm(lead(evnt,1) ~ predictor + country, data = df4)
-  summary(m_const_fe)
-  m_const_fe_reg <- m_const_fe |> 
-    tbl_regression()
-  
-  # as fixed effect
-  m_const_fe2 <- glm(lead(evnt,1) ~ predictor + gov_left + surplus + country, data = df4)
-  summary(m_const_fe2)
-  m_const_fe2_reg <- m_const_fe2 |> 
-    tbl_regression()
-  
-  
-  # fixed effect & interaction
-  m_const_int_fe <- glm(lead(evnt,1) ~ predictor + gov_left + surplus + predictor*gov_left + country, data = df4)
-  m_const_int_fe_reg <- m_const_int_fe|>  
-    tbl_regression()
-  
-  # fixed effect & interaction with surplus
-  m_const_int_fe_s <- glm(lead(evnt,1) ~ predictor + gov_left + surplus + predictor*surplus + country, data = df4)
-  m_const_int_fe_s_reg <- m_const_int_fe_s |>  
-    tbl_regression()
-  
-  results <- tbl_merge(list(m_const_ml_reg, 
-                            m_const_intercept_reg, 
-                            m_const_int_reg, 
-                            m_const_fe_reg, 
-                            m_const_fe2_reg,
-                            m_const_int_fe_reg, 
-                            m_const_int_fe_s_reg),
-                       tab_spanner = c("**Base Model**", 
-                                       "**Intercept**", 
-                                       "**Models**",
-                                       "**FE**",
-                                       "**Models**",
-                                       "**+Interaction**",
-                                       "**Surplus FE**"))
-  return(results)
+  return(models)
   
 }
 
-reg_evnt_fixed <- function(predictor){
+reg_evnt_table <- function(modellist){
   
-  # fixed effect & interaction
-  m_const_int_fe <- glm(lead(evnt,1) ~ predictor + gov_left + surplus + predictor*gov_left + country, data = df4)
+  # Creates a table to compare all Models estimated in reg_evnt_models
+  
+  rows <- tribble(~term, ~Base, ~Mixed,  ~`Mixed Controls`, ~`Mixed Interaction`, ~Fixed, ~`Fixed Controls`, ~`Fixed Interaction`,
+                  'Country FE', 'No', 'Random Intercept', 'Random Intercept', 'Random Intercept', 'FE', 'FE', 'FE')
+  
+  attr(rows, 'position') <- 15
+  
+  table <- modelsummary(
+    modellist,
+    fmt = 1,
+    estimate  = "{estimate}{stars}",
+    statistic = 'conf.int',
+    coef_omit = "(Intercept|^country)",
+    add_rows = rows,
+    coef_rename = c("predictor" = "Weighted Populism Score", 
+                    "interaction1" = "Left-Wing",
+                    "v2xnp_pres" = "Presidentialism Score",
+                    "lagged_v2x_libdem" = "Lagged Democray (1)",
+                    "coalition" = "Coalition",
+                    "surplus" = "Surplus Seats",
+                    "predictorxinteraction1" = "Populism x Left-Wing",
+                    "no_govparties" = "No Gov Parties"))
+  
+  return(table)
 
-  return(m_const_int_fe)
-  
 }
 
-tidy_effects <- function(regression_model, moderator, levels) {
+models <- reg_evnt_models(df4$gov_popul_weighted, df4$gov_left, df4$surplus, df4)
+
+reg_evnt_table(models)
+
+model_fe <- models$`Mixed Interaction`
+
+tidy_effects <- function(regression_model, interaction1) {
+  
   # marginal effects of populism score based on left-wing populism
+  # returns a df with AME, SE and predictions at 90, 95 and 99 CI
   
-  regression_model %>%
+  # calculate levels of moderating variable for plotting
+  
+  if (all(interaction1 %in% c(0, 1) | is.na(interaction1))) {
+    levels <- c(0, 1)
+  } else if (!all(interaction1 %in% c(0, 1) | is.na(interaction1))) {
+    levels <- seq(
+      min(interaction1, na.rm = TRUE),
+      max(interaction1, na.rm = TRUE),
+      0.05
+    )
+  }  
+  return(levels)
+}
+
+levels <- tidy_effects(model_fe, df4$gov_left)
+
+# currently struggling here XXX
+tidy_effects <- function(regression_model, levels) {  
+  # calculate marginal effects
+  
+  model_fe %>%
     margins(
       variables = "predictor",
-      at = list(moderator = levels)
-    ) |> 
-    summary() ->
+      at = list(interaction1 = levels)
+    )
+  # CLOSURE ERROR
+    summary() |> 
+    # calculate 3 confidence intervals
+    mutate(lower = AME - 1.96 * SE, 
+           upper = AME + 1.96 * SE,
+           lower_90 = AME - 1.64 * SE, 
+           upper_90 = AME + 1.64 * SE,
+           lower_99 = AME - 3.58 * SE, 
+           upper_99 = AME + 3.58 * SE) ->
     meff
-  
-  meff %>%
-    mutate(clower = AME - 1.96 * SE, 
-           cupper = AME + 1.96 * SE,
-           clower_90 = AME - 1.64 * SE, 
-           cupper_90 = AME + 1.64 * SE,
-           clower_99 = AME - 2.58 * SE, 
-           cupper_99 = AME + 2.58 * SE) ->
-    effects
-  
-  return(effects)
+    
+    return(meff)
 }
+
+tidy_effects(model_fe, df4$gov_left, levels)
+
+
+effects <- tidy_effects(model_fe, df4$gov_left)
+
+reg_plot <- function(effects){
+  
+  effects |> 
+    ggplot(aes(y = interaction1)) +
+    geom_vline(xintercept = 0, color = "#C95D63", linetype = "dotted") +
+    #xlim(-0.5, 0.5) +
+    geom_linerange(aes(x = AME, xmin = lower, xmax = upper), alpha = 0.6, linewidth = 0.75 , color = "darkslategrey") +
+    geom_linerange(aes(x = AME, xmin = lower_99, xmax = upper_99), alpha = 0.4, linewidth = 0.5, color = "darkslategrey") +
+    geom_pointrange(aes(x = AME, xmin = lower_90, xmax = upper_90), alpha = 0.8, linewidth = 1, size= 0.3,  color = "darkslategrey") +
+    labs(y = "",
+         x = "Average Marginal Effect of Government Populism Score") +
+    xlim(-1, 1)
+}
+
+reg_plot(effects)
 
 ### Government Weighted Populism Score -> Event
 # are constitutional events more likely under populist governments?
 m_const_lm <- lm(lead(evnt, 1) ~ gov_popul_weighted, data = df4)
 m_const_ml_reg <- m_const_lm |> 
   tbl_regression()
+
+# controls
+m_const_control <- lmer(lead(evnt, 1) ~ gov_popul_weighted + gov_left + v2xnp_pres + lagged_v2x_libdem + coalition + surplus + (1 | country), data = df4) 
+m_const_control <- m_const_control |> 
+  tbl_regression()
+m_const_control
+
 
 # Random Country Intercepts
 m_const_intercept <- lmer(lead(evnt, 1) ~ gov_popul_weighted + (1 | country), data = df4) 
@@ -197,16 +232,17 @@ m_const_intercept_reg <- m_const_intercept |>
 m_const_int <- lmer(lead(evnt, 1) ~ gov_popul_weighted * gov_left + surplus + (1 | country), data = df4)
 m_const_int_reg <- m_const_int |> 
   tbl_regression()
+m_const_int_reg
 
 # Random Country Intercepts & Interaction with rile
-m_const_int <- lmer(lead(evnt, 1) ~ gov_popul_weighted * gov_left + v2xnp_pres + lagged_v2x_libdem + no_govparties + surplus + (1 | country), data = df4)
+m_const_int <- lmer(lead(evnt, 1) ~ gov_popul_weighted * gov_left + v2xnp_pres + lagged_v2x_libdem + coalition + surplus + (1 | country), data = df4)
 m_const_int_reg <- m_const_int |> 
   tbl_regression()
 m_const_int_reg
 
 # Random Country Intercepts & Interaction presidentialism
-m_const_int <- lmer(lead(evnt, 1) ~ gov_popul_weighted * v2xnp_pres + v2xnp_pres + lagged_v2x_libdem + no_govparties + surplus + (1 | country), data = df4)
-m_const_int_reg <- m_const_int |> 
+m_const_int_pres <- lmer(lead(evnt, 1) ~ gov_popul_weighted * v2xnp_pres + v2xnp_pres + lagged_v2x_libdem + coalition + surplus + (1 | country), data = df4)
+m_const_int_pres_reg <- m_const_int |> 
   tbl_regression()
 m_const_int_reg
 
@@ -217,9 +253,9 @@ m_const_fe_reg <- m_const_fe |>
   tbl_regression()
 
 # as fixed effect
-m_const_fe2 <- glm(lead(evnt,1) ~ gov_popul_weighted + gov_left + surplus + country, data = df4)
-summary(m_const_fe2)
-m_const_fe2_reg <- m_const_fe2 |> 
+m_const_fe3 <- glm(lead(evnt,1) ~ gov_popul_weighted + gov_left + surplus + country, data = df4)
+summary(m_const_fe3)
+m_const_fe3_reg <- m_const_fe3 |> 
   tbl_regression()
 
 
@@ -239,7 +275,7 @@ results <- tbl_merge(list(m_const_ml_reg,
                           m_const_intercept_reg, 
                           m_const_int_reg, 
                           m_const_fe_reg, 
-                          m_const_fe2_reg,
+                          m_const_fe3_reg,
                           m_const_int_fe_reg, 
                           m_const_int_fe_s_reg),
                      tab_spanner = c("**Base Model**", 
@@ -256,27 +292,33 @@ m_const_int |>
   filter(!str_detect(term, "^country|sd|\\(I")) |> 
   mutate(term = str_replace_all(term, c("no_govparties" = "Number of\nCoalition Partners",
                                         "surplus" = "Surplus", 
-                                       "gov_popul_weighted" = "Government Populism Score",
-                                       "gov_left" = "Left-Wing",
-                                       ":" = " x\n ",
-                                       "lag\\(v2x_libdem\\)" = "Liberal Democracy\n Lagged"))) |> 
+                                       "gov_popul_weighted" = "**Government Populism Score**",
+                                       "gov_left" = "Left-Wing Dummy",
+                                       ":" = " x<br> ",
+                                       "lagged_v2x_libdem" = "Liberal Democracy<br> Lagged",
+                                       "v2xnp_pres" = "Presidentialism",
+                                       "coalition" = "Coalition Dummy"))) |> 
   ggplot(aes(y = term)) +
   geom_vline(xintercept = 0, color = "#C95D63", linetype = "dotted") +
   stat_halfeye(
-    aes(xdist = dist_student_t(df = df.residual(m_const_int_fe), 
+    aes(xdist = dist_student_t(df = df.residual(m_const_int), 
                                mu = estimate, 
                                sigma = std.error)),
     fill = "darkslategrey", 
-    alpha = 0.5
+    alpha = 0.5,
+    size = 0.5
   ) +
   xlim(-1, 1) +
   labs(x = "",
        y = "")
 
+ggsave("slides/slides_cdm/images/evnt_likelihood_reg.png", width = 4, height = 3, units = "in", dev = "png")
+
 
 # marginal effects of populism score based on left-wing populism
 
-m_const_int %>%
+
+m_const_int_fe %>%
   margins(
     variables = "gov_popul_weighted",
     at = list(gov_left = c(0,1))
@@ -289,27 +331,37 @@ meff %>%
          cupper = AME + 1.96 * SE,
          clower_90 = AME - 1.64 * SE, 
          cupper_90 = AME + 1.64 * SE,
-         clower_99 = AME - 2.58 * SE, 
-         cupper_99 = AME + 2.58 * SE,
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE,
          gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) ->
   plot_left
 
 plot_left |> 
   ggplot(aes(y = gov_left)) +
-  geom_vline(xintercept = 0, color = "#C95D63") +
+  geom_vline(xintercept = 0, color = "#C95D63", linetype = "dotted") +
   #xlim(-0.5, 0.5) +
-  geom_linerange(aes(x = AME, xmin = clower_90, xmax = cupper_90), linewidth = 2, color = "darkslategrey") +
-  geom_linerange(aes(x = AME, xmin = clower_99, xmax = cupper_99), linewidth = 0.5, color = "darkslategrey") +
-  geom_pointrange(aes(x = AME, xmin = clower, xmax = cupper), linewidth = 1, color = "darkslategrey") +
+  geom_linerange(aes(x = AME, xmin = clower, xmax = cupper), alpha = 0.6, linewidth = 0.75 , color = "darkslategrey") +
+  geom_linerange(aes(x = AME, xmin = clower_99, xmax = cupper_99), alpha = 0.4, linewidth = 0.5, color = "darkslategrey") +
+  geom_pointrange(aes(x = AME, xmin = clower_90, xmax = cupper_90), alpha = 0.8, linewidth = 1, size= 0.3,  color = "darkslategrey") +
   labs(y = "",
        x = "Average Marginal Effect of Government Populism Score") +
-  xlim(-0.6, 0.6)
+  xlim(-1, 1)
 
+ggsave("slides/slides_cdm/images/evnt_likelihood.png", width = 4, height = 3, units = "in", dev = "png")
+ggsave("results/graphs/evnt_likelihood.pdf", width = 14, height = 14, units = "in", dev = cairo_pdf)
+ggsave("results/graphs/evnt_likelihood.png", width = 14, height = 14, units = "in", dev = "png")
 
 
 ### marginal effects of left score based on populism score ---
 
-m_const_int_fe %>%
+# create sequence of 0.05 distance to calculate marginal effects
+govpol_seq <- seq(
+  min(df4$gov_popul_weighted, na.rm = TRUE),
+  max(df4$gov_popul_weighted, na.rm = TRUE),
+  0.05
+)
+
+m_const_int %>%
   margins(
     variables = "gov_left",
     at = list(gov_popul_weighted = govpol_seq)
@@ -322,8 +374,8 @@ meff %>%
          cupper = AME + 1.96 * SE,
          clower_90 = AME - 1.64 * SE, 
          cupper_90 = AME + 1.64 * SE,
-         clower_99 = AME - 2.58 * SE, 
-         cupper_99 = AME + 2.58 * SE) ->
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE) ->
   plot_left
 
 plot_left |> 
@@ -331,11 +383,12 @@ plot_left |>
   geom_hline(yintercept = 0, color = "#C95D63") +
   geom_ribbon(aes(ymin = clower_90, ymax = cupper_90), alpha = 0.8, fill = "darkslategrey") +
   geom_ribbon(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.4, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = clower, ymax = cupper), alpha = 0.2, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = clower, ymax = cupper), alpha = 0.3, fill = "darkslategrey") +
   geom_line(aes(y = AME)) +
   labs(x = "Government Weighted Populism Score",
        y = "Average Marginal Effect of Left-Wing Government") +
   xlim(0,1)
+
 
 ### Plotting Number of Government Parties
 
@@ -354,8 +407,8 @@ meff %>%
          cupper = AME + 1.96 * SE,
          clower_90 = AME - 1.64 * SE, 
          cupper_90 = AME + 1.64 * SE,
-         clower_99 = AME - 2.58 * SE, 
-         cupper_99 = AME + 2.58 * SE) ->
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE) ->
   # rename latin dummy for plot
   #gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) ->
   plot_left
@@ -365,7 +418,7 @@ plot_left |>
   geom_hline(yintercept = 0, color = "#C95D63") +
   #xlim(-0.5, 0.5) +
   geom_ribbon(aes(ymin = clower_90, ymax = cupper_90), alpha = 0.8, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.2, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.3, fill = "darkslategrey") +
   geom_ribbon(aes(ymin = clower, ymax = cupper), alpha = 0.5, fill = "darkslategrey") +
   labs(y = "",
        x = "Average Marginal Effect of Government Populism Score")  +
@@ -392,8 +445,8 @@ m_const_fe <- glm(lead(evnt,1) ~ ruth_populism + country, data = df4)
 summary(m_const_fe)
 
 # as fixed effect
-m_const_fe2 <- glm(lead(evnt,1) ~ ruth_populism + gov_left + country, data = df4)
-summary(m_const_fe2)
+m_const_fe3 <- glm(lead(evnt,1) ~ ruth_populism + gov_left + country, data = df4)
+summary(m_const_fe3)
 
 # fixed effect & interaction
 m_const_int_fe <- glm(lead(evnt,1) ~ ruth_populism + gov_right + ruth_populism*gov_right + country, data = df4)
@@ -432,8 +485,8 @@ meff %>%
          cupper = AME + 1.96 * SE,
          clower_90 = AME - 1.64 * SE, 
          cupper_90 = AME + 1.64 * SE,
-         clower_99 = AME - 2.58 * SE, 
-         cupper_99 = AME + 2.58 * SE,
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE,
          # rename latin dummy for plot
          gov_right = if_else(gov_right == 0, "Left-Wing", "Right-Wing")) ->
   plot_left
@@ -442,7 +495,7 @@ plot_left |>
   ggplot(aes(y = gov_right)) +
   geom_vline(xintercept = 0, color = "#C95D63") +
   xlim(-0.5, 0.5) +
-  geom_linerange(aes(x = AME, xmin = clower_90, xmax = cupper_90), linewidth = 2) +
+  geom_linerange(aes(x = AME, xmin = clower_90, xmax = cupper_90), linewidth = 3) +
   geom_linerange(aes(x = AME, xmin = clower_99, xmax = cupper_99), linewidth = 0.5) +
   geom_pointrange(aes(x = AME, xmin = clower, xmax = cupper), linewidth = 1) +
   labs(y = "",
@@ -468,8 +521,8 @@ m_const_fe <- glm(lead(evnt,1) ~ gov_popul_prime + country, data = df4)
 summary(m_const_fe)
 
 # as fixed effect
-m_const_fe2 <- glm(lead(evnt,1) ~ gov_popul_prime + gov_left + country, data = df4)
-summary(m_const_fe2)
+m_const_fe3 <- glm(lead(evnt,1) ~ gov_popul_prime + gov_left + country, data = df4)
+summary(m_const_fe3)
 
 # fixed effect & interaction
 m_const_int_fe <- glm(lead(evnt,1) ~ gov_popul_prime + gov_left + gov_popul_prime*gov_left + country, data = df4)
@@ -509,8 +562,8 @@ meff %>%
          cupper = AME + 1.96 * SE,
          clower_90 = AME - 1.64 * SE, 
          cupper_90 = AME + 1.64 * SE,
-         clower_99 = AME - 2.58 * SE, 
-         cupper_99 = AME + 2.58 * SE,
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE,
          # rename latin dummy for plot
          gov_right = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) ->
   plot_left
@@ -519,7 +572,7 @@ plot_left |>
   ggplot(aes(y = gov_right)) +
   geom_vline(xintercept = 0, color = "#C95D63") +
   xlim(-0.5, 0.5) +
-  geom_linerange(aes(x = AME, xmin = clower_90, xmax = cupper_90), linewidth = 2) +
+  geom_linerange(aes(x = AME, xmin = clower_90, xmax = cupper_90), linewidth = 3) +
   geom_linerange(aes(x = AME, xmin = clower_99, xmax = cupper_99), linewidth = 0.5) +
   geom_pointrange(aes(x = AME, xmin = clower, xmax = cupper), linewidth = 1) +
   labs(y = "",
@@ -540,8 +593,8 @@ meff %>%
          cupper = AME + 1.96 * SE,
          clower_90 = AME - 1.64 * SE, 
          cupper_90 = AME + 1.64 * SE,
-         clower_99 = AME - 2.58 * SE, 
-         cupper_99 = AME + 2.58 * SE) ->
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE) ->
   plot_left
 
 plot_left |> 
@@ -549,7 +602,7 @@ plot_left |>
   geom_hline(yintercept = 0, color = "#C95D63") +
   geom_ribbon(aes(ymin = clower_90, ymax = cupper_90), alpha = 0.8, fill = "darkslategrey") +
   geom_ribbon(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.4, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = clower, ymax = cupper), alpha = 0.2, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = clower, ymax = cupper), alpha = 0.3, fill = "darkslategrey") +
   geom_line(aes(y = AME)) +
   labs(x = "Government Weighted Populism Score",
        y = "Average Marginal Effect of Left-Wing Government") +
@@ -565,17 +618,18 @@ plot_left |>
 m1 <- lmer(lead(v2x_libdem, 1) ~ gov_popul_weighted + (1 | country) + (1 | year), data = df4)
 summary(m1)
 
-m2 <- lmer(lead(v2x_libdem, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
-summary(m2)
+m3 <- lmer(lead(v2x_libdem, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
+summary(m3)
 
 m3 <- lmer(lead(v2x_libdem, 1) ~ gov_left + (1 | country) + (1 | year), data = df4)
 summary(m3)
 
-m4 <- lmer(lead(v2x_libdem, 1) ~ evnt * gov_popul_weighted * gov_left + (1 | country) + (1 | year), data = df4)
+m4 <- lmer(lead(v2x_libdem, 1) ~ evnt * gov_popul_weighted * gov_left + lagged_v2x_libdem + surplus + coalition +  (1 | country), data = df4)
 summary(m4)
+m4 |>  tbl_regression()
 
-m4 |> 
-  tbl_regression()
+m4_lag <- lmer(lead(v2x_libdem, 1) ~ evnt * gov_popul_weighted * lagged_v2x_libdem + gov_left + surplus + coalition +  (1 | country), data = df4)
+m4_lag |>  tbl_regression()
 
 m5 <- lmer(lead(v2x_libdem, 1) ~ evnt * gov_popul_weighted * gov_left + (1 | country) + (1 | year), data = df4)
 
@@ -588,14 +642,31 @@ summary(m_cl)
 
 ### Participation ----
 
-m1latcs <- lmer(lead(v2x_cspart, 1) ~ gov_popul_weighted + (1 | country) + (1 | year), data = df4)
+m1latcs <- lmer(lead(v2x_partip, 1) ~ gov_popul_weighted + (1 | country) + (1 | year), data = df4)
 summary(m1latcs)
 
-m2latcs <- lmer(lead(v2x_cspart, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
-summary(m2latcs)
-
-m3latcs <- lmer(lead(v2x_cspart, 1) ~ evnt * gov_popul_weighted * gov_left + (1 | country) + (1 | year), data = df4)
+m3latcs <- lmer(lead(v2x_partip, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
 summary(m3latcs)
+
+m3latcs <- lmer(lead(v2x_partip, 1) ~ evnt * gov_popul_weighted * gov_left + (1 | country) + (1 | year), data = df4)
+summary(m3latcs)
+
+m4latcs <- lmer(lead(v2x_partip, 1) ~ evnt * gov_popul_weighted * gov_left + lagged_v2x_partip + surplus + coalition +  (1 | country), data = df4)
+summary(m4latcs)
+
+### Egalitarian Model  ----
+
+m1latcs <- lmer(lead(v2x_egaldem, 1) ~ gov_popul_weighted + (1 | country) + (1 | year), data = df4)
+summary(m1latcs)
+
+m3latcs <- lmer(lead(v2x_egaldem, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
+summary(m3latcs)
+
+m3latcs <- lmer(lead(v2x_egaldem, 1) ~ evnt * gov_popul_weighted * gov_left + (1 | country) + (1 | year), data = df4)
+summary(m3latcs)
+
+m4eg <- lmer(lead(v2x_egaldem, 1) ~ evnt * gov_popul_weighted * gov_left + lagged_v2x_egaldem + surplus + coalition +  (1 | country), data = df4)
+summary(m4latcs)
 
 #### Regression Output----
 
@@ -610,7 +681,7 @@ govpol_seq <- seq(
 
 # marginal effects for liberal democracy based on interaction model
 
-m_cl %>%
+m4 %>%
   margins(
     variables = "evnt",
     at = list(gov_popul_weighted = govpol_seq, gov_left = c(0, 1))
@@ -621,41 +692,42 @@ meff
 # calculate lower and upper confidence interval
 
 meff %>%
-  mutate(lower = AME - 1.96 * SE, 
-         upper = AME + 1.96 * SE,
+  mutate(clower = AME - 1.96 * SE, 
+         cupper = AME + 1.96 * SE,
+         clower_90 = AME - 1.64 * SE, 
+         cupper_90 = AME + 1.64 * SE,
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE,
          # rename latin dummy for plot
-         gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) %>%
-  dplyr::select(gov_popul_weighted, gov_left, AME, upper, lower) ->
+         gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) ->
   plotdf_ld
 
 ## Final Plot for Liberal Democracy 
 
 ggplot(plotdf_ld, aes(x = gov_popul_weighted, y = AME)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#6C6F7F") +
-  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.7) +
+  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
+  geom_ribbon(aes(ymin = clower_90, ymax = cupper_90), alpha = 0.8, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.4, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = clower, ymax = cupper), alpha = 0.3, fill = "darkslategrey") +
+  geom_line(aes(y = AME)) +
   geom_line() +
   facet_grid(~gov_left) +
-  labs(caption = "") +
-  labs(title = "",
-       subtitle = "Liberal Democracy",
-       x = "Government Populism Score",
-       y = "") +
+  labs(x = "Government Populism Score",
+       y = "",
+       caption = "Average Marginal Effect of Constitutional Change Conditioned By Ideology & Government Populism Score.") +
   scale_x_continuous(
-    breaks = c(0, 0.25, 0.5, 0.75, 1),
+    breaks = c(0, 0.35, 0.5, 0.75, 1),
     limits = c(0, 1)
   ) +
-  ylim(-0.1, 0.1)  ->
-plot_ld
+  ylim(-0.1, 0.1) 
 
-
-plot_ld
-
+ggsave("slides/slides_cdm/images/libdem_interaction.png", width = 8, height = 3.5,  units = "in", dev = "png")
 ggsave("results/graphs/liberaldem_interaction.pdf", width = 14, height = 6, units = "in", dev = cairo_pdf)
 ggsave("results/graphs/liberaldem_interaction.png", width = 14, height = 6, units = "in", dev = "png")
 
 ### Plotting for Participation ----
 
-m3latcs %>%
+m4latcs %>%
   margins(
     variables = "evnt",
     at = list(gov_popul_weighted = govpol_seq, gov_left = c(0, 1))
@@ -665,37 +737,83 @@ m3latcs %>%
 
 # calculate confidence intervals 
 
-meff_cs |> 
-  mutate(lower = AME - 1.96 * SE, 
-         upper = AME + 1.96 * SE,
+
+meff_cs %>%
+  mutate(clower = AME - 1.96 * SE, 
+         cupper = AME + 1.96 * SE,
+         clower_90 = AME - 1.64 * SE, 
+         cupper_90 = AME + 1.64 * SE,
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE,
          # rename dummy for plots
-         gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) |>  
-  dplyr::select(gov_popul_weighted, gov_left, AME, upper, lower) ->
+         gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) ->
   plotdf_cs
 
-ggplot(
-  plotdf_cs,
-  aes(x = gov_popul_weighted, y = AME)
-  ) +
-  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.7) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#6C6F7F") +
+ggplot(plotdf_cs, aes(x = gov_popul_weighted, y = AME)) +
+  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
+  geom_ribbon(aes(ymin = clower_90, ymax = cupper_90), alpha = 0.8, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.4, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = clower, ymax = cupper), alpha = 0.3, fill = "darkslategrey") +
+  geom_line(aes(y = AME)) +
   geom_line() +
   facet_grid(~gov_left) +
-  labs(title = "Effect of Constitutional Change on...",
-       subtitle = "Civil Society",
-       x = "",
-       y = "Marginal Effect")+
+  labs(x = "Government Populism Score",
+       y = "",
+       caption = "Average Marginal Effect of Constitutional Change Conditional on Ideology & Weighted Populism Score.") +
   scale_x_continuous(
-    breaks = c(0, 0.25, 0.5, 0.75, 1),
+    breaks = c(0, 0.35, 0.5, 0.75, 1),
     limits = c(0, 1)
   ) +
-  ylim(-0.1, 0.1)  ->
-plot_cs
+  ylim(-0.1, 0.1) 
 
-plot_cs
-
+ggsave("slides/slides_cdm/images/participation_interaction.png", width = 8, height = 3.5,  units = "in", dev = "png")
 ggsave("results/graphs/participationdem_interaction.pdf", width = 14, height = 6, units = "in", dev = cairo_pdf)
 ggsave("results/graphs/participation_interaction.png", width = 14, height = 6, units = "in", dev = "png")
+
+### Plotting for Egalitarian ----
+
+m4eg %>%
+  margins(
+    variables = "evnt",
+    at = list(gov_popul_weighted = govpol_seq, gov_left = c(0, 1))
+  ) %>%
+  summary() ->
+  meff_eg
+
+# calculate confidence intervals 
+
+
+meff_eg %>%
+  mutate(clower = AME - 1.96 * SE, 
+         cupper = AME + 1.96 * SE,
+         clower_90 = AME - 1.64 * SE, 
+         cupper_90 = AME + 1.64 * SE,
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE,
+         # rename dummy for plots
+         gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) ->
+  plotdf_eg
+
+ggplot(plotdf_eg, aes(x = gov_popul_weighted, y = AME)) +
+  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
+  geom_ribbon(aes(ymin = clower_90, ymax = cupper_90), alpha = 0.8, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.4, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = clower, ymax = cupper), alpha = 0.3, fill = "darkslategrey") +
+  geom_line(aes(y = AME)) +
+  geom_line() +
+  facet_grid(~gov_left) +
+  labs(caption = "Average Marginal Effect of Constitutional Change Conditioned By Ideology & Government Populism Score.",
+       x = "Government Populism Score",
+       y = "") +
+  scale_x_continuous(
+    breaks = c(0, 0.35, 0.5, 0.75, 1),
+    limits = c(0, 1)
+  ) +
+  ylim(-0.1, 0.1) 
+
+ggsave("slides/slides_cdm/images/egaldem_interaction.png", width = 8, height = 3.5, units = "in", dev = "png")
+
+
 
 ### Combined Final Plots for Paper ----
 
@@ -706,37 +824,64 @@ patchworked
 ggsave("results/graphs/interaction.pdf", width = 8, height = 8, units = "in", dev = cairo_pdf)
 ggsave("results/graphs/interaction.png", width = 8, height = 8, units = "in", dev = "png")
 
+### RUTH POPULISM - DEMOCRATIC QUALITY ---- 
 
-### Data ----
 
 ### Liberal Democracy ----
 m1 <- lmer(lead(v2x_libdem, 1) ~ ruth_populism + (1 | country) + (1 | year), data = df4)
 summary(m1)
 
-m2 <- lmer(lead(v2x_libdem, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
-summary(m2)
+m3 <- lmer(lead(v2x_libdem, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
+summary(m3)
 
 m3 <- lmer(lead(v2x_libdem, 1) ~ gov_left + (1 | country) + (1 | year), data = df4)
 summary(m3)
 
-
-m4 <- lmer(lead(v2x_libdem, 1) ~ evnt * ruth_populism * gov_left + (1 | country) + (1 | year), data = df4)
+m4 <- lmer(lead(v2x_libdem, 1) ~ evnt * ruth_populism * gov_left + surplus + coalition +  (1 | country), data = df4)
 summary(m4)
+
 m4 |> 
   tbl_regression()
 
+m5 <- lmer(lead(v2x_libdem, 1) ~ evnt * ruth_populism * gov_left + (1 | country) + (1 | year), data = df4)
+
+
+m_cl <- lm_robust(lead(v2x_libdem, 1)  ~ gov_left * ruth_populism * lag(v2x_libdem)  + gov_left + lag(v2x_libdem),
+                  clusters = country,
+                  fixed_effects = ~ country,
+                  data = df4)
+summary(m_cl)
+
 ### Participation ----
 
-m1latcs <- lmer(lead(v2x_polyarchy, 1) ~ ruth_populism + (1 | country) + (1 | year), data = df4)
+m1latcs <- lmer(lead(v2x_partip, 1) ~ ruth_populism + (1 | country) + (1 | year), data = df4)
 summary(m1latcs)
 
-m2latcs <- lmer(lead(v2x_polyarchy, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
-summary(m2latcs)
-
-m3latcs <- lmer(lead(v2x_polyarchy, 1) ~ evnt * ruth_populism * gov_left + (1 | country) + (1 | year), data = df4)
+m3latcs <- lmer(lead(v2x_partip, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
 summary(m3latcs)
 
-## Regression Output ----
+m3latcs <- lmer(lead(v2x_partip, 1) ~ evnt * ruth_populism * gov_left + (1 | country) + (1 | year), data = df4)
+summary(m3latcs)
+
+m4latcs <- lmer(lead(v2x_partip, 1) ~ evnt * ruth_populism * gov_left + surplus + coalition +  (1 | country), data = df4)
+summary(m4latcs)
+
+### Egalitarian Model  ----
+
+m1latcs <- lmer(lead(v2x_egaldem, 1) ~ ruth_populism + (1 | country) + (1 | year), data = df4)
+summary(m1latcs)
+
+m3latcs <- lmer(lead(v2x_egaldem, 1) ~ evnt + (1 | country) + (1 | year), data = df4)
+summary(m3latcs)
+
+m3latcs <- lmer(lead(v2x_egaldem, 1) ~ evnt * ruth_populism * gov_left + (1 | country) + (1 | year), data = df4)
+summary(m3latcs)
+
+m4eg <- lmer(lead(v2x_egaldem, 1) ~ evnt * ruth_populism * gov_left + surplus + coalition +  (1 | country), data = df4)
+summary(m4latcs)
+
+#### Regression Output----
+
 ### Plotting for Liberal Democracy ----
 
 # marginal effects for liberal democracy based on interaction model
@@ -744,7 +889,7 @@ summary(m3latcs)
 m4 %>%
   margins(
     variables = "evnt",
-    at = list(ruth_populism = c("Populist", "Non-Populist"), gov_left = c(0, 1))
+    at = list(ruth_populism = c(0,1), gov_left = c(0, 1))
   ) %>%
   summary() ->
   meff
@@ -756,83 +901,121 @@ meff %>%
          cupper = AME + 1.96 * SE,
          clower_90 = AME - 1.64 * SE, 
          cupper_90 = AME + 1.64 * SE,
-         clower_99 = AME - 2.58 * SE, 
-         cupper_99 = AME + 2.58 * SE,
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE,
          # rename latin dummy for plot
-         gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing"))  ->
+         gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) ->
   plotdf_ld
 
 ## Final Plot for Liberal Democracy 
 
 ggplot(plotdf_ld, aes(x = ruth_populism, y = AME)) +
-  geom_linerange(aes(ymin = clower_90, ymax = cupper_90), color = "#6C6F7F", size = 2) +
-  geom_linerange(aes(ymin = clower, ymax = cupper), color = "#6C6F7F", size = 1) +
-  geom_point(color = "#6C6F7F", size = 3) +
-  geom_linerange(aes(ymin = clower_99, ymax = cupper_99),  color = "#6C6F7F", size = 0.5) +  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.7) +
-  facet_grid(~ gov_left) +
-  labs(caption = "") +
-  labs(title = "",
-       subtitle = "Liberal Democracy",
-       x = "Government Populism Score",
-       y = "")   ->
-  plot_ld
+  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
+  geom_linerange(aes(ymin = clower_90, ymax = cupper_90), alpha = 0.8, color = "darkslategrey") +
+  geom_linerange(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.4, color = "darkslategrey") +
+  geom_linerange(aes(ymin = clower, ymax = cupper), alpha = 0.3, color = "darkslategrey") +
+  geom_point(aes(y = AME)) +
+  facet_grid(~gov_left) +
+  labs(x = "Government Populism Score",
+       y = "",
+       caption = "Average Marginal Effect of Constitutional Change Conditioned By Ideology & Government Populism Score.") +
+  scale_x_continuous(
+    breaks = c(0,1),
+    limits = c(0, 1)
+  ) +
+  ylim(-0.1, 0.1) 
 
-
-plot_ld
-
-ggsave("results/graphs/liberaldem_interaction.pdf", width = 14, height = 6, units = "in", dev = cairo_pdf)
-ggsave("results/graphs/liberaldem_interaction.png", width = 14, height = 6, units = "in", dev = "png")
+ggsave("slides/slides_cdm/images/libdem_interaction_ruth.png", width = 8, height = 3.5,  units = "in", dev = "png")
+ggsave("results/graphs/liberaldem_interaction_ruth.pdf", width = 14, height = 6, units = "in", dev = cairo_pdf)
+ggsave("results/graphs/liberaldem_interaction_ruth.png", width = 14, height = 6, units = "in", dev = "png")
 
 ### Plotting for Participation ----
 
-m3latcs %>%
+m4latcs %>%
   margins(
     variables = "evnt",
-    at = list(ruth_populism = c("Populist", "Non-Populist"), gov_left = c(0, 1))
+    at = list(ruth_populism = c(0,1), gov_left = c(0, 1))
   ) %>%
   summary() ->
   meff_cs
 
 # calculate confidence intervals 
 
-meff_cs |> 
+
+meff_cs %>%
   mutate(clower = AME - 1.96 * SE, 
          cupper = AME + 1.96 * SE,
          clower_90 = AME - 1.64 * SE, 
          cupper_90 = AME + 1.64 * SE,
-         clower_99 = AME - 2.58 * SE, 
-         cupper_99 = AME + 2.58 * SE,
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE,
          # rename dummy for plots
          gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) ->
   plotdf_cs
 
-ggplot(
-  plotdf_cs,
-  aes(x = ruth_populism, y = AME))   +
-  geom_linerange(aes(ymin = clower_90, ymax = cupper_90), color = "#6C6F7F", size = 2) +
-  geom_linerange(aes(ymin = clower, ymax = cupper), color = "#6C6F7F", size = 1) +
-  geom_point(color = "#6C6F7F", size = 3) +
-  geom_linerange(aes(ymin = clower_99, ymax = cupper_99),  color = "#6C6F7F", size = 0.5) +
-  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.7) +
+ggplot(plotdf_cs, aes(x = ruth_populism, y = AME)) +
+  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
+  geom_linerange(aes(ymin = clower_90, ymax = cupper_90), alpha = 0.8, color = "darkslategrey") +
+  geom_linerange(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.4, color = "darkslategrey") +
+  geom_linerange(aes(ymin = clower, ymax = cupper), alpha = 0.3, color = "darkslategrey") +
+  geom_point(aes(y = AME)) +
   facet_grid(~gov_left) +
-  labs(title = "Effect of Constitutional Change on...",
-       subtitle = "Polyarchy",
-       x = "",
-       y = "Marginal Effect") 
+  labs(x = "Government Populism Score",
+       y = "",
+       caption = "Average Marginal Effect of Constitutional Change Conditional on Ideology & Weighted Populism Score.") +
+  scale_x_continuous(
+    breaks = c(0, 0.35, 0.5, 0.75, 1),
+    limits = c(0, 1)
+  ) +
+  ylim(-0.1, 0.1) 
 
-plot_cs
+ggsave("slides/slides_cdm/images/participation_interaction_ruth.png", width = 8, height = 3.5,  units = "in", dev = "png")
+ggsave("results/graphs/participationdem_interaction_ruth.pdf", width = 14, height = 6, units = "in", dev = cairo_pdf)
+ggsave("results/graphs/participation_interaction_ruth.png", width = 14, height = 6, units = "in", dev = "png")
 
-ggsave("results/graphs/participationdem_interaction.pdf", width = 14, height = 6, units = "in", dev = cairo_pdf)
-ggsave("results/graphs/participation_interaction.png", width = 14, height = 6, units = "in", dev = "png")
+### Plotting for Egalitarian ----
 
-### Combined Final Plots for Paper ----
+m4eg %>%
+  margins(
+    variables = "evnt",
+    at = list(ruth_populism = c(0,1), gov_left = c(0, 1))
+  ) %>%
+  summary() ->
+  meff_eg
 
-patchworked <- plot_cs + plot_ld + plot_layout(ncol = 1)
+# calculate confidence intervals 
 
-patchworked
 
-ggsave("results/graphs/interaction.pdf", width = 8, height = 8, units = "in", dev = cairo_pdf)
-ggsave("results/graphs/interaction.png", width = 8, height = 8, units = "in", dev = "png")
+meff_eg %>%
+  mutate(clower = AME - 1.96 * SE, 
+         cupper = AME + 1.96 * SE,
+         clower_90 = AME - 1.64 * SE, 
+         cupper_90 = AME + 1.64 * SE,
+         clower_99 = AME - 3.58 * SE, 
+         cupper_99 = AME + 3.58 * SE,
+         # rename dummy for plots
+         gov_left = if_else(gov_left == 0, "Right-Wing", "Left-Wing")) ->
+  plotdf_eg
+
+ggplot(plotdf_eg, aes(x = ruth_populism, y = AME)) +
+  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
+  geom_linerange(aes(ymin = clower_90, ymax = cupper_90), alpha = 0.8, color = "darkslategrey") +
+  geom_linerange(aes(ymin = clower_99, ymax = cupper_99), alpha = 0.4, color = "darkslategrey") +
+  geom_linerange(aes(ymin = clower, ymax = cupper), alpha = 0.3, color = "darkslategrey") +
+  geom_point(aes(y = AME)) +
+  facet_grid(~gov_left) +
+  labs(caption = "Average Marginal Effect of Constitutional Change Conditioned By Ideology & Government Populism Score.",
+       x = "Government Populism Score",
+       y = "") +
+  scale_x_continuous(
+    breaks = c(0, 0.35, 0.5, 0.75, 1),
+    limits = c(0, 1)
+  ) +
+  ylim(-0.1, 0.1) 
+
+ggsave("slides/slides_cdm/images/egaldem_interaction.png", width = 8, height = 3.5, units = "in", dev = "png")
+
+
 
 # Histogram ----
 

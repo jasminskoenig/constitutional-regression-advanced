@@ -1,6 +1,6 @@
 institute: "University of Hamburg <br> Research Training Group Collective Decision-Making"
-author: "Jasmin Sarah König"
-footer: "Workshop Collective Decision Making"
+author: "Jasmin Sarah König & Tilko Swalve"
+footer: "Workshop Collective Decision-Making"
 format:
   revealjs:
     theme: slides.scss

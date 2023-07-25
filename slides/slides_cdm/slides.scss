@@ -15,7 +15,7 @@ $theme-darkslate: #263f3f;
 $presentation-title-slide-text-color: $theme-darkslate;
   $code-block-font-size: 0.7em;
 $presentation-h2-font-size: 1.4em !default;
-$presentation-font-size-root: 36px !default;
+$presentation-font-size-root: 30px !default;
 $presentation-heading-color: $theme-darkslate !default;
 $link-color: $theme-rose;
 $code-color: $theme-blue;
@@ -37,19 +37,19 @@ font-size: 25px
 #title-slide .title {
 text-align: center;
 color: #464a53;
-  font-size: 30px
+  font-size: 35px
 }
 
 #title-slide .quarto-title-author {
 text-align: center;
 color: #464a53;
-  font-size: 20px;
+  font-size: 30px;
 }
 
 #title-slide .institute {
 text-align: center;
 color: #464a53;
-  font-size: 20px;
+  font-size: 25px;
 }
 
 
@@ -86,7 +86,7 @@ color: #464a53;
   padding-bottom: 3px;
   margin-bottom: 6px;
   margin-top: 6px;
-  border-left: solid 5px #AF929D;
+  border-left: solid 5px #263f3f;
   background-color: #AF929D;
 }
 
@@ -125,4 +125,8 @@ color: #464a53;
 h1 {
   color: $theme-silver;
   font-size: 1em;
+}
+
+.caption{
+   text-align: center;
 }
