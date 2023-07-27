@@ -76,7 +76,8 @@ ccpc_vdem %>%
   filter(e_regiongeo %in% c(1:4, 17:18)) |>
   # create dummy for interaction effect
   mutate(latin = if_else(e_regiongeo %in% c(17, 18), 1, 0),
-         lag_respect_con = lag(v2exrescon, 1)) |> 
+         lag_respect_con = lag(v2exrescon, 1),
+         lagged_v2x_libdem = lag(v2x_libdem, 5)) |> 
   mutate(across(starts_with("v2x"), 
          .fns = ~ . - lag(.),
          .names = "lagged_{.col}")) ->
@@ -129,7 +130,7 @@ reg_evnt_table <- function(modellist){
     coef_rename = c("iv" = "Populism Score", 
                     "moderator" = "Left-Wing",
                     "v2xnp_pres" = "Presidentialism Score",
-                    "lagged_v2x_libdem" = "Lagged Democray (1)",
+                    "lagged_v2x_libdem" = "Lagged Democray (5)",
                     "coalition" = "Coalition",
                     "surplus" = "Surplus Seats",
                     "ivxmoderator" = "Populism x Left-Wing",
