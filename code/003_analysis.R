@@ -75,7 +75,8 @@ ccpc_vdem|>
 ccpc_vdem %>%
   filter(e_regiongeo %in% c(1:4, 17:18)) |>
   # create dummy for interaction effect
-  mutate(latin = if_else(e_regiongeo %in% c(17, 18), 1, 0)) |> 
+  mutate(latin = if_else(e_regiongeo %in% c(17, 18), 1, 0),
+         lag_respect_con = lag(v2exrescon, 1)) |> 
   mutate(across(starts_with("v2x"), 
          .fns = ~ . - lag(.),
          .names = "lagged_{.col}")) ->
@@ -97,8 +98,8 @@ reg_evnt_models <- function(iv, moderator){
   models <- list(
     "Base" = lm(lead(evnt, 1) ~ iv, data = df4),
     "Mixed" = lmer(lead(evnt, 1) ~ iv + (1 | country), data = df4),
-    "Mixed Controls" = lmer(lead(evnt, 1) ~ iv + moderator + v2xnp_pres + lagged_v2x_libdem + coalition + (1 | country), data = df4),
-    "Mixed Interaction" = lmer(lead(evnt, 1) ~ iv * moderator + moderator + v2xnp_pres + lagged_v2x_libdem + coalition + (1 | country), data = df4),
+    "Mixed Controls" = lmer(lead(evnt, 1) ~ iv + moderator + v2xnp_pres + lag_respect_con +lagged_v2x_libdem + coalition + (1 | country), data = df4),
+    "Mixed Interaction" = lmer(lead(evnt, 1) ~ iv * moderator + moderator + lag_respect_con + v2xnp_pres + lagged_v2x_libdem + coalition + (1 | country), data = df4),
     "Fixed"     = glm(lead(evnt,1) ~ iv + country, data = df4),
     "Fixed Controls" = glm(lead(evnt,1) ~ iv + moderator + coalition + country, data = df4),
     "Fixed Interaction" = glm(lead(evnt,1) ~ iv + moderator + coalition + v2xnp_pres + lagged_v2x_libdem + iv*moderator + country, data = df4)
@@ -132,7 +133,8 @@ reg_evnt_table <- function(modellist){
                     "coalition" = "Coalition",
                     "surplus" = "Surplus Seats",
                     "ivxmoderator" = "Populism x Left-Wing",
-                    "no_govparties" = "No Gov Parties"))
+                    "no_govparties" = "No Gov Parties",
+                    "lag_respect_con" = "Respect Constitution (Lag, 1)"))
   
   return(table)
 
@@ -264,8 +266,7 @@ reg_plot <- function(effects){
         geom_linerange(aes(x = AME, xmin = lower_99, xmax = upper_99), alpha = 0.4, linewidth = 0.5, color = "darkslategrey") +
         geom_pointrange(aes(x = AME, xmin = lower_90, xmax = upper_90), alpha = 0.8, linewidth = 1, size= 0.3,  color = "darkslategrey") +
         labs(y = "",
-             x = "Average Marginal Effect of Government Populism Score") +
-        xlim(-1, 1)
+             x = "Average Marginal Effect of Government Populism Score") 
   }
   
 }
@@ -592,25 +593,49 @@ effects_polyarchy <- reg_effects_multiinteraction(model_polyarchy,
 
 reg_plot(effects_polyarchy)
 
+# Analysis Compliance
 
-# Histogram ----
 
-theme_set(theme_gridY)
+reg_jud_ind <- function(iv, moderator){
+  
+  # Runs base, mixed-effect and fixed-effect models to predict constitutional change
+  # Returns list of regressions
+  # Single regressions can be accessed like this: models$`Mixed Interaction` afterwards
+  
+  models <- list(
+    "Constitution" = lm(v2exrescon ~ iv, data = df4),
+    "Compliance Jud" = lm(v2jucomp ~ iv, data = df4),
+    "Comliance High" = lm(v2juhccomp ~ iv, data = df4),
+    "Independence" = lm(v2juhcind ~ iv, data = df4),
+    "Index" = lm(v2x_jucon ~ iv, data = df4),
+    "Constitution2" = lmer(v2exrescon ~ iv*moderator + (1 | country), data = df4),
+    "Compliance Jud2" = lmer(v2jucomp ~ iv*moderator + (1 | country), data = df4),
+    "Comliance High2" = lmer(v2juhccomp ~ iv*moderator + (1 | country), data = df4),
+    "Independence2" = lmer(v2juhcind ~ iv*moderator + (1 | country), data = df4),
+    "Index2" = lmer(v2x_jucon ~ iv*moderator + (1 | country), data = df4)
+  )
+  
+  return(models)
+  
+}
 
-df4 |> 
-  filter(!is.na(gov_popul_weighted)) |> 
-  ggplot() +
-  geom_histogram(aes(gov_popul_weighted)) +
-  labs(x = "Weighted Populism Score per Government",
-       y = "")
+models_jud_ind <- reg_jud_ind(df4$gov_popul_weighted, df4$gov_left)
 
-ggsave("results/graphs/histogram.pdf", width = 8, height = 5, units = "in", dev = cairo_pdf)
-ggsave("results/graphs/histogram.png", width = 8, height = 5, units = "in")
+table <- modelsummary(
+  models_jud_ind,
+  fmt = 1,
+  estimate  = "{estimate}{stars}",
+  statistic = 'conf.int',
+  coef_omit = "(Intercept|^country)")
+table
 
-df4 |> 
-  filter(!is.na(ruth_populism)) |> 
-  ggplot() +
-  geom_bar(aes(x = ruth_populism)) +
-  labs(x = "Weighted Populism Score per Government",
-       y = "")
+model_const_res <- models_jud_ind$`Index2`
+
+levels_left <- reg_mod_levels(model_const_res, df4$gov_left)
+
+effects_const_res <- reg_tidy_effects(model_const_res, 
+                                      levels_left, 
+                                      df4$gov_popul_weighted, df4$gov_left, 
+                                      "Right", "Left")
+reg_plot(effects_const_res)
 
