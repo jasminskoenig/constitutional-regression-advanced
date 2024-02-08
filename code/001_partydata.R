@@ -15,7 +15,8 @@ vparty2 %>%
          country_id,e_regiongeo,v2xpa_antiplural,v2xpa_popul,
          v2paseatshare,v2patotalseat,v2pavote,v2pagovsup,
          ep_type_populism,ep_type_populist_values, 
-         ep_v8_popul_rhetoric,ep_v9_popul_saliency, v2pariglef, pf_party_id) -> 
+         ep_v8_popul_rhetoric,ep_v9_popul_saliency, v2pariglef, pf_party_id,
+         ep_galtan) -> 
   vparty2
 
 # partyfacts ----
@@ -96,7 +97,7 @@ vparty2 |>
   mutate(populist_interval = if_else(
     !is.na(populist_interval.x), populist_interval.x, populist_interval.y)
   ) |> 
-  # only keep the final colmn
+  # only keep the final column
   select(-populist_interval.x, -populist_interval.y) |> 
   # now check for each year of party in vparty dataset whether it is included in pop interval
   mutate(rooduijn = if_else(
@@ -119,6 +120,15 @@ vparty2 |>
 mp_setapikey(".secrets/manifesto_apikey.txt")
 
 manifesto <- mp_maindataset() 
+
+manifesto |> 
+  distinct(countryname, edate) |> 
+  mutate(year = year(edate)) ->
+  manifesto_coverage
+
+vparty2 |> 
+  distinct(country_name, year) |> 
+  left_join(manifesto_coverage, by = join_by(year, country_name == countryname)) 
 
 partyfacts_lookup |> 
   filter(dataset_key == "manifesto") |> 
@@ -167,6 +177,11 @@ vparty2 |>
          gal = if_else(!is.na(gal.x), gal.x, if_else(!is.na(gal.y), gal.y, NA))) |>  
   select(-rile.x, -rile.y) ->
   vparty2
+
+# 64 countries with scores from manifesto
+vparty2 |> 
+  filter(!is.na(gal)) |> 
+  distinct(country_name) 
 
 # CHES ----
 
@@ -235,35 +250,124 @@ df %>%
   filter(gov_party == 1) ->
   vparty_governments
 
+# government composition
+
+gov_stab <- function(x){
+  
+  if (x == "senior") {
+    vparty_governments %>%
+      filter(v2pagovsup == 0) ->
+      filtered
+  } else if (x == "junior"){
+    vparty_governments %>%
+      filter(v2pagovsup == 1) ->
+      filtered
+  } else {
+    vparty_governments %>%
+      filter(v2pagovsup <= 2) ->
+      filtered
+  }
+    
+      filtered |> 
+      select(country_name, year, party_id, v2paenname) %>%
+      group_by(country_name, year) %>%
+      summarise(
+        id = list(party_id),
+        name = list(v2paenname),
+        .groups = "drop"
+      ) %>% 
+      group_by(country_name) |> 
+      mutate(lag_name = lag(name)) |> 
+      ungroup() |> 
+      mutate(gov_stability = case_when(
+        sapply(lag_name, is.null) ~ NA,
+        TRUE ~ map2_lgl(name, lag_name, ~all(.x %in% .y)))
+      ) |> 
+      group_by(country_name) |> 
+      filter(gov_stability == FALSE | is.na(gov_stability)) |> 
+      mutate(start = ifelse(is.na(gov_stability), NA, year),
+             end = lead(year), ) |> 
+      select(country_name, start, end) |> 
+      group_by(country_name) |> 
+      mutate(start = if_else(row_number() == 1, 1990, start),
+             end = if_else(row_number() == n(), 2022, end),
+             interval = interval(ymd(start, truncated = 2L), ymd(end, truncated = 2L))) ->
+      stability
+  
+  return(stability)
+}
+
+senior_stability <- gov_stab("senior")
+junior_stability <- gov_stab("junior")
+gov_stability <- gov_stab("both")
+
+# some cases are returned duplicated now XXX
 # calculate government information
 vparty_governments %>% 
-  group_by(country_name,year) %>% 
+  group_by(country_name,year) %>%
   # seat share of government
   mutate(gov_seatshare = sum(v2paseatshare), 
          # calculate weight of government parties
          weight = v2paseatshare/gov_seatshare,
+         # code a dummy whether party is populist according to V-Party
+         vparty_populist = if_else(v2xpa_popul > 0.5, 1, 0),
+         # code a dummy whether senior is populist
+         vparty_populist_senior = if_else(v2xpa_popul > 0.5 & v2pagovsup == 0, 1, 0),
+         # code a dummy whether junior is populist
+         vparty_populist_junior = if_else(v2xpa_popul > 0.5 & v2pagovsup == 1, 1, 0),
          # code whether any government party is populist according to popuList
          rooduijn_government = if_else(sum(rooduijn) > 0, "Populist", "Non-Populist"),
          # code whether senior party is populist accoring to popuList
-         rooduijn_government_senior = if_else(sum(rooduijn_senior) > 0, "Populist", "Non-Populist")) %>% 
+         rooduijn_government_senior = if_else(sum(rooduijn_senior) > 0, "Populist", "Non-Populist")) |>  
   group_by(country_name, year, gov_seatshare, e_regiongeo, rooduijn_government, rooduijn_government_senior) %>% 
   # calulcate mean of populism score and weighted populism score per year of country (= per government)
   summarise(gov_popul_mean = mean(v2xpa_popul),
             # calculate weighted pop score per party and then add as weighted pop score per government
             gov_popul_weighted = sum(v2xpa_popul*weight),
+            # calulcate weighted galtan vparty score
+            gov_galtan_weighted = sum(ep_galtan*weight),
             # calculate weighted left - right econ
             gov_ideol_mean = mean(v2pariglef),
             # calculate weighted ideology
             gov_ideol_weighted = sum(v2pariglef*weight),
+            # calculate weighted rile score
             gov_rile_weighted = sum(rile*weight),
+            # calculate weighted gal score
             gov_gal_weighted = sum(gal*weight),
+            # calculate weighted weighted econ rile score
             gov_econ_rile_weighted = sum(econ_rile*weight),
+            # calculate number of government parties
             no_govparties = n(),
-            .groups = "drop") |>
+            # calculate number of populist vparty gov parties
+            no_pop_vparty = sum(v2xpa_popul > 0.5),
+            no_pop_vparty_sen = sum(vparty_populist_senior),
+            no_pop_vparty_jun = sum(vparty_populist_junior),
+            # calculate number of populist popuList gov parties
+            no_pop_rooduijn = sum(rooduijn == 1),
+            .groups = "drop") |> 
   # dummies for economic left-right
   mutate(econ_right = if_else(gov_ideol_weighted > 0.5, 1, 0),
          econ_left = if_else(gov_ideol_weighted < 0.5, 1, 0),
-         coalition = if_else(no_govparties > 1, 1, 0)) -> 
+         coalition = if_else(no_govparties > 1, 1, 0),
+         # dummy for solo government
+         solo = if_else(no_govparties == 1, 1, 0),
+         vparty_populist_senior = if_else(no_pop_vparty_sen > 0, 1, 0),
+         vparty_populist_junior = if_else(no_pop_vparty_jun > 0, 1, 0),
+         vparty_populist = if_else(no_pop_vparty > 0, 1, 0)) |> 
+  select(-starts_with("no_pop_vparty"))-> 
+  vparty_governments_populism
+
+vparty_governments_populism |> 
+  left_join(senior_stability,
+          by = join_by(country_name == country_name, year >= start, year < end)) |> 
+  left_join(junior_stability,
+          by = join_by(country_name == country_name, year >= start, year < end)) |> 
+  left_join(gov_stability,
+            by = join_by(country_name == country_name, year >= start, year < end)) |> 
+  select(-starts_with("start"), -starts_with("end")) |> 
+  rename("interval_sen" = "interval.x",
+         "interval_jun" = "interval.y",
+         "interval_gov" = "interval") ->
   vparty_governments_populism
 
 # populism score of party of president in vparty

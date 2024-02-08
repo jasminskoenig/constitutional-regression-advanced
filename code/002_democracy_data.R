@@ -18,11 +18,26 @@ vdem %>%
 vdem2 %>% 
   dplyr::select(country_name, year, country_id, e_regiongeo, v2x_polyarchy, v2x_partip, v2xdd_i_pl,
          v2x_libdem, v2x_delibdem, v2x_egaldem, v2x_liberal, v2xcl_rol, v2x_cspart,
-         v2x_jucon, v2jureform, v2jupurge, v2jupoatck, v2jupack,
+         v2x_jucon, v2jureform_ord, v2jupurge_ord, v2jupoatck_ord, v2jupack_ord,
          v2juaccnt, v2jucorrdc, v2juhcind, v2juncind, v2juhccomp,
-         v2jucomp, v2jureview, v2x_regime, v2xnp_pres,
-         v2exrescon, v2jucomp, v2juhccomp, v2juhcind,v2x_jucon) |> 
+         v2jucomp, v2jureview, v2x_regime, v2xnp_pres, 
+         v2exrescon, v2jucomp, v2juhccomp, v2juhcind, v2x_jucon) |> 
   mutate(country_name = if_else(country_name == "Czechia", "Czech Republic", country_name)) -> 
+  vdem2
+
+vdem2 |> 
+  mutate(jud_pack = if_else(v2jupack_ord < 2.5, 1, 0),
+         jud_pack_con = if_else(v2jupack_ord < 1.5, 1, 0),
+         jud_atck = if_else(v2jupoatck_ord < 3.5, 1, 0),
+         jud_atck_con = if_else(v2jupoatck_ord < 2.5, 1, 0),
+         jud_purg = if_else(v2jupurge_ord < 2.5, 1, 0),
+         jud_purg_con = if_else(v2jupurge_ord < 1.5, 1, 0),
+         jud_ref = if_else(v2jureform_ord < 0.5, 1, 0),
+         # this doesnt work yet
+         rev_remov = if_else(v2jureview == 0 & lag(v2jureview) == 1, 1, 0),
+         jud_reg = if_else(jud_pack + jud_atck + jud_purg + jud_ref > 0, 1, 0),
+         jud_replace = if_else(jud_pack + jud_purg > 0, 1, 0),
+         jud_replace_con = if_else(jud_pack_con + jud_purg_con > 0, 1, 0)) ->
   vdem2
 
 joined_vdata <- left_join(vdem2,
@@ -55,15 +70,67 @@ ruth_smaller |>
   mutate(dataset = "Ruth-Lovell & Grahn") ->
   ruth_countries
 
+# Add Barometer Data on Trust in Judiciary ----
 
-# fill in vparty columns for the additional observations in vdem years
-joined_vdata %>% 
+eurobarometer <- readRDS("C:/Users/Jasmin/OneDrive - Universität Hamburg/Desktop/Dissertation/barometer/data/eurobarometer_complete.rds")
+latinobarometer <- readRDS("C:/Users/Jasmin/OneDrive - Universität Hamburg/Desktop/Dissertation/barometer/data/latinobarometer_binary.rds")
+
+eurobarometer |> 
+  group_by(country, year) |> 
+  mutate(n = n(), 
+         mean = mean(trust_judiciary, na.rm = TRUE)) |> 
+  group_by(country, year, trust_judiciary, mean) |> 
+  reframe(share = n()/n) |> 
+  distinct() ->
+  eurobarometer_shares
+
+latinobarometer |> 
+  filter(country != "Spain") |> 
+  group_by(country, year) |> 
+  mutate(n = n(), 
+         mean = mean(trust_judiciary, na.rm = TRUE)) |> 
+  group_by(country, year, trust_judiciary, mean) |> 
+  reframe(share = n()/n) |> 
+  distinct() ->
+  latinobarometer_shares
+
+barometer <- rbind(
+  latinobarometer_shares, 
+  eurobarometer_shares
+  ) |> 
+  mutate(year = as.double(year))
+
+barometer |> 
+  filter(trust_judiciary == 1) |> 
+  select(-trust_judiciary) |> 
+  rename("trust_share" = "share",
+         "trust_mean" = "mean") ->
+  barometer_forbind
+
+barometer_forbind |> 
+  group_by(country) |> 
+  mutate(diff = if_else(
+    year - lag(year) > 1, trust_share - lag(trust_share), NA
+  )) 
+
+joined_vdata |> 
+  left_join(barometer_forbind, by = join_by(country_name == country,
+                                            year == year)) ->
+  joined_vdata
+
+# Fill VParty ----
+
+# fill in vparty columns & barometer for the additional observations in vdem years
+joined_vdata %>%
+  mutate(trust_share_imp_lastv = trust_share,
+         trust_mean_imp_lastv = trust_mean) |> 
   group_by(country_name) %>% 
   fill(gov_popul_mean,
        gov_popul_weighted,
        gov_seatshare,
        e_regiongeo,
        no_govparties,
+       no_pop_rooduijn,
        gov_popul_prime,
        rooduijn_government,
        rooduijn_government_senior,
@@ -71,11 +138,27 @@ joined_vdata %>%
        gov_gal_weighted,
        gov_rile_weighted,
        gov_econ_rile_weighted,
-       coalition) %>% 
+       coalition,
+       vparty_populist_senior,
+       vparty_populist_junior,
+       vparty_populist,
+       solo,
+       interval_sen,
+       interval_jun,
+       interval_gov,
+       gov_galtan_weighted, 
+       trust_mean_imp_lastv,
+       trust_share_imp_lastv) %>% 
   ungroup() |> 
   mutate(surplus = if_else(gov_seatshare - 50 < 0, 0, 1),
          gov_rile_left = as.factor(if_else(gov_rile_weighted < -8 , 1, 0)),
-         gov_rile_left = as.factor(if_else(gov_rile_weighted > 8 , 1, 0))) -> 
+         gov_rile_left = as.factor(if_else(gov_rile_weighted > 8 , 1, 0)),
+         gov_galtan_left = case_when(
+           gov_galtan_weighted < 0.4 ~ "low",
+           gov_galtan_weighted < 0.7 ~ "medium",
+           gov_galtan_weighted < 1 ~ "high",
+           TRUE ~ NA
+         )) -> 
   joined_vdata
 
 # define whether government is left wing or right wing
@@ -83,7 +166,12 @@ joined_vdata %>%
 joined_vdata |> 
   mutate(gov_left = if_else(gov_ideol_weighted < 0, 1, if_else(is.na(gov_ideol_weighted), NA, 0)),
          gov_right = if_else(gov_ideol_weighted > 0, 1, if_else(is.na(gov_ideol_weighted), NA, 0)),
-         gov_center = if_else(gov_ideol_weighted == 0, 1, if_else(is.na(gov_ideol_weighted), NA, 0))) ->
+         gov_center = if_else(gov_ideol_weighted == 0, 1, if_else(is.na(gov_ideol_weighted), NA, 0))) |> 
+  group_by(country_name, interval_sen) |> 
+  mutate(senior_length = row_number()) |> 
+  group_by(country_name, interval_gov) |> 
+  mutate(gov_length = row_number()) |>
+  ungroup() ->
   joined_vdata
 
 
@@ -239,10 +327,20 @@ ccpc %>%
          # does the head of state or government have the standing to challenge the constitutionality of legislation?
          review = ifelse(challeg_1 == 1 | challeg_2 == 1| challeg_3 == 1, 1, 0),
          # who can propose an amendment to the constitution?
-         amendement = ifelse(amndprop_1 == 1 | amndprop_2 == 1| amndprop_3 == 1, 1, 0),
+         amendment = ifelse(amndprop_1 == 1 | amndprop_2 == 1| amndprop_3 == 1, 1, 0),
+         # how large does the majority need to be for an amendment
+         amendmaj = case_when(
+           amndamaj == 2 ~ 1,
+           amndapct < 5 ~ amndapct + 1,
+           TRUE  ~ NA
+         ),
          # power of the executive
-         executive = decree + emergency + removal_leg + veto + review + amendement,
-         # number if institutions included in the selection of judges
+         executive = decree + emergency + removal_leg + veto + review + amendment,
+         # head of state, head of government or government decide on supreme court justices
+         supnom = if_else(supnom_1 + supnom_2 + supnom_3 > 0, 1, 0), 
+         # number of other players that need to approve new judges
+         supap = supap_4 + supap_5 + supap_6 + supap_7,
+         # number of institutions included in the selection of judges
          selection = ifelse(connom_1 + connom_2 + connom_3 + connom_4 + connom_5 + connom_7 + conap_1 + conap_2 + conap_3 + conap_4 + conap_5 + conap_7 > 1 | connom_6 + conap_6 > 0, 1, 0),
          # only one term for judges allowed
          appointment = ifelse(conlim == 1, 1, 0),
@@ -257,6 +355,7 @@ ccpc %>%
          across(c("judiciary", "executive"),
                 .fns = ~ . - lag(.),
                 .names = "diff_{.col}"),
+         judiciary_change = if_else(judiciary != lag(judiciary), 1, 0),
          # power change of executive
          diff_executive = executive - lag(executive),
          # increase in terms allowance for head of state
@@ -274,7 +373,7 @@ ccpc %>%
 ccpc %>%
   as_tibble() %>%
   select(
-    country, year, syst, evnt, evnttype, contains("rights_"), starts_with("diff_")
+    country, year, syst, evnt, evnttype, contains("rights_"), starts_with("diff_"), supnom, supap, selection, executive, amendment, amendmaj, judiciary_change,
   ) ->
 ccpc
 
@@ -284,7 +383,232 @@ ccpc_vdem <- left_join(joined_vdata,
                        ccpc,
                        by=c("country","year"))
 
-glimpse(ccpc_vdem)
+# ADDITIONAL MUTATIONS ----
+
+## IMPUTATION FOR TRUST ----
+
+get_linear_imputation <- function(countryname, variable){
+  #' Returns ccpc_vdem dataframe with added columns
+  #' for linear imputation of chosen variable, number of missing observations
+  #' and the change that has occured in the variable between last
+  #' and next existing observation
+  #' 
+  #' Filters dataframe to country based on given countryname
+  #' Imputes data for given variable
+  
+  # Filter to chosen country
+  ccpc_vdem |> 
+    filter(country == countryname) ->
+    temp_df
+  
+  # Check region of country
+  region <- temp_df |> 
+    distinct(e_regiongeo) |> 
+    pull(e_regiongeo)
+  
+  # Depending on region, the timeframe of the data is set
+  if (region %in% c(1:4)){
+    temp_df |> 
+      filter(year > 1999) ->
+      temp_df_time
+    
+    temp_df |> 
+      filter(year < 2000) ->
+      unused
+  } else if (region %in% c(17:18)){
+    temp_df |> 
+      filter(year > 1994) ->
+      temp_df_time
+    
+    temp_df |> 
+      filter(year < 1995) ->
+      unused
+  } 
+  
+  # If Latinamerica or Europe & there are some observations for given variable
+  # -> data is imputed
+  # -> otherwise variables are returned NA
+  if (region %in% c(1:4, 17:18) & any(!is.na(temp_df[[variable]]))){
+    
+    # to identify observations, row_id is added
+    temp_df_time |> 
+      mutate(
+        row_id = row_number()
+      ) ->
+      temp_df_time
+    
+    # check which rows are not NA for the given variable
+    temp_df_time |> 
+      filter(!is.na(!!sym(variable))) |> 
+      pull(row_id) ->
+      rows_with_values
+    
+    # for each observation that is NA for the given variable
+    temp_df_time %>%
+      # choose the next smallest number from the observations that are not NA
+      mutate(next_smallest = if_else(is.na(!!sym(variable)),
+                                     map_dbl(row_id, ~max(rows_with_values[rows_with_values < .x], na.rm = TRUE)),
+                                     NA),
+             # and the next biggest
+             next_biggest = if_else(is.na(!!sym(variable)),
+                                    map_dbl(row_id, ~min(rows_with_values[rows_with_values > .x], na.rm = TRUE)),
+                                    NA)) ->
+      temp_df2
+    
+    # calculate how far the observation is from the last and next value
+    temp_df2 |> 
+      mutate(difference_last = row_id - next_smallest,
+             difference_next = next_biggest - row_id) ->
+      temp_df3
+
+    get_value_by_row <- function(row_num, data, var_name) {
+      #' returns the value of chosen variable, in chosen data for the chosen row
+      if (is.na(row_num)) {
+        return(NA)
+      } else {
+        return(data[[var_name]][row_num])
+      }
+    }
+    
+    out <- temp_df3 %>%
+      # now using the helper function pick the last and next value
+      mutate(
+        lastvalue = if_else(!is.na(difference_last),
+                            map_dbl(row_id, ~get_value_by_row(max(rows_with_values[rows_with_values < .], na.rm = TRUE), temp_df_time, variable)),
+                            NA),
+        nextvalue = if_else(!is.na(difference_next),
+                            map_dbl(row_id, ~get_value_by_row(min(rows_with_values[rows_with_values > .], na.rm = TRUE), temp_df_time, variable)),
+                            NA),
+        # get the difference between the last and next observation
+        differencerows = abs(next_biggest - next_smallest),
+        # get how much the variable has changed in that time
+        differencevalues = abs(lastvalue - nextvalue),
+        # calculate how large one step is depending on the how much
+        # the variable has changed and how many years are missing
+        step = if_else(
+         is.na(!!sym(variable)),
+         differencevalues / differencerows,
+         NA
+         ),
+        # add one step per observation
+        # this is done multiplying the step with the 
+        # difference to the last observation
+        imputedvalue = case_when(
+          !is.na(!!sym(variable)) ~ !!sym(variable),
+          nextvalue > lastvalue ~ lastvalue + step*difference_last,
+          nextvalue < lastvalue ~ lastvalue - step*difference_last
+        )
+      ) |> 
+      select(-lastvalue, 
+             -nextvalue, 
+             -step,
+             -difference_last,
+             -difference_next,
+             -next_smallest,
+             -next_biggest,
+             -row_id) |> 
+      rename(!!paste0(variable, '_NAyears') := differencerows, 
+             !!paste0(variable, '_NAchange') := differencevalues, 
+             !!paste0(variable, '_linear_imp') := imputedvalue)
+    
+    
+    
+    out <- bind_rows(out, unused) |> 
+      arrange(year)
+    
+  } else {
+    
+    temp_df |> 
+      arrange(year) -> 
+      out
+    
+  }
+  
+  return(out)
+}
+
+ccpc_vdem |> 
+  distinct(country) |> 
+  pull() ->
+  all_countries
+
+ccpc_vdem <- map_dfr(all_countries,  ~get_last_observation(.x, "trust_share"))
+
+## MEAN LAGS ----
+
+calculate_lagsummary <- function(var, intervall, func, by_government){
+  #' calculates the chosen function for all lag of the chosen intervall
+  #' function can be sum or mean
+  #' can be done only by government (otherwise by country)
+  
+  if (by_government){
+    ccpc_vdem |> 
+      arrange(country, year) |> 
+      group_by(country, interval_sen) |> 
+      select(country, year, interval_sen, any_of(var)) ->
+      ccpc_vdem_temp
+  } else {
+    ccpc_vdem |> 
+      arrange(country, year) |> 
+      group_by(country) |> 
+      select(country, year, any_of(var)) ->
+      ccpc_vdem_temp
+  }
+  
+  for (i in 1:intervall) {
+    lag_var_name <- paste0("lagged_", var, "_", i)
+    ccpc_vdem_temp |> 
+      mutate(!!lag_var_name := lag(!!as.name(var), i))  ->
+      ccpc_vdem_temp
+    
+  }
+  
+  if (func == "sum"){
+    varname <- paste0(var, "_sum_", intervall)
+    
+    ccpc_vdem_temp %>%
+      rowwise() %>%
+      mutate(sum_var_name := sum(across(starts_with("lagged")))) |> 
+      ungroup() |> 
+      pull(last_col())  ->
+      column
+  } else {
+    varname <- paste0(var, "_mean_", intervall)
+    
+    ccpc_vdem_temp %>%
+      rowwise() %>%
+      mutate(sum_var_name := mean(across(starts_with("lag")))) %>%
+      ungroup() |> 
+      pull(last_col())  ->
+      column
+  }
+  
+  return(column)
+}
+
+ccpc_vdem$evnt_sum_lag10 <- calculate_lagsummary("evnt", 10, func = "sum", by_government = TRUE)
+ccpc_vdem$evnt_sum_lag5 <- calculate_lagsummary("evnt", 5, func = "sum", by_government = TRUE)
+ccpc_vdem$evnt_sum_lag3 <- calculate_lagsummary("evnt", 3, func = "sum", by_government = TRUE)
+
+### XXXNOT WORKING YET
+ccpc_vdem$trust_mean_10 <- calculate_lagsummary("trust_share", 10, func = "mean", by_government = FALSE)
+ccpc_vdem$trust_mean_5 <- calculate_lagsummary("trust_share", 5, func = "mean", by_government = FALSE)
+ccpc_vdem$trust_mean_3 <- calculate_lagsummary("trust_share", 3, func = "mean", by_government = FALSE)
+
+### XXX CURRENT ALTERNATIVE
+ccpc_vdem |> 
+  group_by(country) |> 
+  mutate(lag_trust_1 = as.numeric(lag(trust_share)),
+         lag_trust_2 = as.numeric(lag(trust_share, 2)),
+         lag_trust_3 = as.numeric(lag(trust_share, 3)),
+         lag_trust_4 = as.numeric(lag(trust_share, 4)),
+         lag_trust_5 = as.numeric(lag(trust_share, 5))) |>  
+  ungroup() |> 
+  rowwise() |> 
+  mutate(lag_trust_mean3 = sum(across(c(lag_trust_1, 
+                                         lag_trust_2, 
+                                         lag_trust_3)))/3)  ->
+  ccpc_vdem
 
 # Save Data ----
 
@@ -308,3 +632,4 @@ ccpc_vdem |>
   ccpc_vdem_eu_la
 
 saveRDS(ccpc_vdem_eu_la, "data/ccpc_vdem_eu_la.rds")
+
