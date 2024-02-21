@@ -1,0 +1,304 @@
+---
+title: '"The Public as a Shield": Does Trust in the Judiciary Condition Populist Attacks on the Judiciary?'
+subtitle: ""
+author: "Jasmin Sarah König"
+date: last-modified
+date-format: medium
+geometry:
+  - top=30mm
+  - left=30mm
+  - bottom=30mm 
+  - right=30mm
+  - heightrounded
+linestretch: 1.5
+tbl-cap-location: top
+format:
+  wordcount-pdf:
+    fontsize: 12pt
+    include-in-header:
+      text: |
+        \usepackage{lscape}
+        \newcommand{\blandscape}{\begin{landscape}}
+        \newcommand{\elandscape}{\end{landscape}}
+        \usepackage{setspace}
+        \onehalfspacing
+        \renewcommand{\abstractname}{Abstract}
+        \usepackage{xcolor}
+        \usepackage{booktabs}
+        \usepackage{siunitx}
+        \newcolumntype{d}{S[
+            input-open-uncertainty=,
+            input-close-uncertainty=,
+            parse-numbers = false,
+            table-align-text-pre=false,
+            table-align-text-post=false
+         ]}
+editor: visual
+bibliography: citation/lit.bib
+csl: citation/ejpr.csl
+classoption: abstract
+---
+
+------------------------------------------------------------------------
+
+Notes:
+
+-   Describe which cases (among other) Hungary have a change in court while missing data years
+
+-   Describe different imputations
+
+-   Try different lags
+
+-   Try different definitions of change (conservative, non-conservative, min max of expert coding)
+
+--
+
+A question that remains unanswered is whether the judiciary can be protected from such attacks on their independence. I argue that trust in the institution can safeguard the independent judiciary from such attacks as it
+
+```{r}
+#| include: false
+
+library(xtable)
+library(papeR)
+library(stargazer)
+library(gt)
+library(modelsummary)
+```
+
+# Introduction
+
+Again and again, we hear warnings that populists - once in power - first dismantle the independent judiciary \[\@\]. One way to do so is by replacing or adding judges. We know that public support is a necessary condition for an effective judiciary \[\@\]. But, can it also prevent courts from being a target of executive aggrandizement? Using V-Dem, Euro- and Latinobarometer data, I examine whether high trust in the judiciary also safeguards the judiciary from attacks on its independence.
+
+The existing scholarship emphasizes the importance of the citizens in enforcing democratic behavior by governments [@Weingast.1997; @Vanberg.2001, @Krehbiel.2020]. According to this idea, politicians fear being punished at the next election and thus refrain from undemocratic behavior. But, if people do not trust their high court, they have few incentives to defend such an institution at the ballot box. In these cases, I expect populist governments that aim to dismantle the judiciary to be more successful in their endeavor.
+
+I assembled data from the Euro- and Latinobarometer to estimate whether the effect of populist governments on court packing and judicial purges is conditional on low trust in the judiciary [@EuropeanCommission.2020]. The variable on trust in the judiciary is the share of respondents per year who answered that they trust the judiciary. Whether a court was packed or judges purged is coded based on the V-Dem dataset [@Vdem.2021]. The coding for populist governments was taken from @RuthLovell.2022 .
+
+I estimate a mixed-effects model with random country intercepts. I expect the interaction between populist governments and the lagged trust in the judiciary to be significantly negative. Trust in the judiciary is likely not independent of the judiciary's performance. I expect that trust in the judiciary is dependent on judicial independence in the years ahead (Table 1 uses the mean of 5 lags) and judicial corruption (lag, 1). I use these variables from the V-Dem dataset to estimate a prediction for each observation of the dataset (see Table 1).
+
+# Theory
+
+The increasing number of populists in office is frequently viewed as a threat to the autonomy of the judiciary [@Arato.2019; @Scheppele.2019; @Muller.2016]. The populist ideology builds on the belief in a homogeneous people that is morally good and in its ability to govern itself [@Mudde.2004]. In contrast, elites are depicted as the enemy of the morally good people [@Mudde.2004]. Liberal democracy, on the other hand, is based on the separation of powers, a cornerstone of which is an independent judiciary \[@Abts.2007\]. The populist vision of a democracy governed by majority rule directly challenges the system of checks and balances integral to liberal democracies [@Canovan.1999; @Meny.2002b; @Abts.2007]. This often leads to the claim that populists undermine judicial independence [@Arato.2019; @Scheppele.2019; @Muller.2016].
+
+So far, most cross-country studies have investigated the effect of populists in power on democratic quality more generally, with judicial independence being part of an index [@Huber.2017; @RuthLovell.2022; @Juon.2020; @Konig.2023b]. Their results paint a similar picture: Populists in power decrease the quality of liberal democracy, only @Konig.2023b found a positive effect in Latin American countries. One possible strategy to undermine judicial independence is changes in the composition of courts. We expect that this happens more frequently if populists are in power.
+
+```{=tex}
+\begin{quote}
+\textbf{Hypothesis 1}: Populist in power increase the likelihood that court packing or purges take place.
+\end{quote}
+```
+With the growing number of countries that experience a decrease in the quality of liberal democratic institutions[@Waldner.2018; @Luhrmann.2019; @Laebens.2021], scholars are increasingly interested in what makes democracies resilient against [@Merkel.2021; @Boese.2021; @Laebens.2021; @LaTorre.2018]. Most studies agree that an organized and active resistance against autocratization among citizens is crucial to avert the erosion of democratic institutions, such as the judiciary [@Druckman.2023; @Laebens.2021; @Luhrmann.2021]. In democracies, citizens have the power to hold the executive accountable for their actions [@Druckman.2023]. As @Buhlmann.2011 (p. 318) writes: "Support for the rule of law is primordial to a democracy and support for the judicial system is essential for the operation of the rule of law."
+
+This is particularly the case, for the judiciary. Particularly high courts do not have the power to enforce their decisions and are volatile to attacks on their legitimacy [@Vanberg.2015]. Governments might be driven by a set of motivations to respect judicial independence: constraints placed on future executives [e.g. @Vanberg.2015], informational advantages [@Rogers.2001], and fear of a public backlash [@Vanberg.2001; @Vanberg.2005; @Krehbiel.2020]. The latter aspect has been the focus of research the most. The notion is that if citizens support and trust the judiciary, they will defend the institution in upcoming elections [@Vanberg.2001; @Vanberg.2005; @Gibson.1998; @Staton.2006; @Staton.2010; @Krehbiel.2020]. As @Vanberg.2015 (p.155) notes: "Public support provides a shield for judicial independence."
+
+The current case of Israel illustrates the logic: For months, citizens went to the streets against the executive's decisions to restrict judicial review [@Bazelon.2023]. Recently, the high court decided that these policies were unconstitutional [@reuters.2024]. While we do not know yet whether the executive will accept the decision on the long-term, the public protests might have paved the way for the high court's decision. The protesters signaled that non-compliance with the high court would backlash in any upcoming election.
+
+<!--# Check out the Uribe Colombia example. -->
+
+If governments do indeed constrain their actions if they are worried about a public backlash, we should observe court packing or purges more frequently if trust in the judiciary is low.
+
+```{=tex}
+\begin{quote}
+\textbf{Hypothesis 2}: With increasing trust in the judiciary, the likelihood of court purges or packing decreases.
+\end{quote}
+```
+Combining the two strands of research, the question arises whether public trust in the judiciary can act as a shield against populist attempts to undermine judicial independence. I expect that the effect of populists in power on court packing and purges is higher when public trust is low.
+
+```{=tex}
+\begin{quote}
+\textbf{Hypothesis 3}: The effect of populists in power on court purges or packing is lower the higher the trust in the judiciary.
+\end{quote}
+```
+<!-- #Citizens particularly important in young democracies where institutions are still volatile [@]. These are likely also the countries where trust is low. -->
+
+<!-- @Bermeo.2016 (p. 10-11) summarizes the core of democratic backsliding as executive aggrandizement, in the course of which horizontal accountability is weakened and power is accumulated in the executive. This often includes the dismantling of judicial independence. -->
+
+<!-- Strong horizontal accountability can increase democratic resilience as well [@Boese.2021, XXX]. Particularly the judiciary is often regarded as the "guardian" or "bulwark" of democracy [@Ferejohn.2009; @Satrio.2018; @Boese.2021]. Courts, particularly those that can exercise judicial review, hold the power to restrain the executive [@Ginsburg.2018b]. But, institutions that can hold the executive accountable, such as an independent judiciary, are frequently restricted in the process of democratic backsliding themselves. The power of an independent judiciary places it in the crossfire of autocratization tendencies. -->
+
+<!-- Under this crossfire, the judiciary can only prevail if it is supported by the public  -->
+
+# Research Design
+
+To study the effect of populists in government on judicial independence, I run an OLS model with country fixed-effects. The appendix further includes multiple two-stage models in which trust is modeled as a function of judicial accountability in a first step to avoid the issue that trust in the judiciary might not be independent from the replacement of judges. **The Hausman Test implies that the share of respondents who trust the judiciary is not endogenous.** I also include a dynamic model, that uses the lagged left-hand side variable as a control. All models yield comparatively similar results, hence the simplest model is presented in the paper.
+
+**Variables**
+
+The dependent variable indicates whether a country has experienced politically motivated changes in court compositions. The V-Dem dataset collects this information in two variables on judicial purges (v2jupurg_ord) and court packing (v2jupack_ord) which indicate whether there was a "massive" or "limited, politically motivated increase in the number of judgeships" [@vdemcodebook.2022, p. 163], or "removal of judges" [@vdemcodebook.2022, p. 164].[^1] I combine these into one variable, by choosing the score that indicates more political interventions that ranges from -1.96 to 4.18.
+
+[^1]: See the appendix for robustness tests with different operationalizations of the variable.
+
+The data on populism is taken from @RuthLovell.2022 who in turn have used the PopuList [@Rooduijn.2019] and data from @Huber.2017 additionally to their own coding. The variable is binary with 1 indicating that the head of government is populist, otherwise the variable is 0.
+
+Data on trust in the judiciary is taken from the Latinobarometer [@XXX] and the Eurobarometer [@EuropeanCommission.2020]. The variable indicates what percentage of respondents in the respective year trust the judiciary in their country. While the Eurobarometer only includes two possible answers, "trust" or "do not trust", the Latinobarometer includes four categories "A lot", "Some", "Little" and "No trust" [@XXX]. "A lot" and "some" were used to calculate the share of respondents who trust the court. The regression models used country fixed-effects, therefore differences in the coding between the continents should not lead to wrong estimates as only the within country variance of the variable is used. In the main model, I use a one-year lag for this variable.
+
+XXX Imputation
+
+**Controls**
+
+The models include controls for the power of the executive with an index built with the Comparative Constitutions dataset [@ComparativeConstitutions.2005; @Elkins.2012]. Further controls for the number of surplus seats of a government based on the V-Party dataset [@VParty.2020], and whether a country is a presidential system. Economic controls are again taken from @RuthLovell.2022 who use the world bank data. The models include controls for GDP per capita and inequality (gini coefficient).
+
+## Robustness Checks
+
+To test the hypothesis is challenging since the trust in the judiciary might be endogenous to former court purges or packing [see @Micheli.2024; @Magalhaes.2023; @Buhlmann.2011 for the impact of judicial independence on trust in the judiciary]. To tackle this problem, I computed multiple robustness checks.
+
+In a first step, the regression was run with trust (lead of one, two and three years) as the left-hand side variable and court purges and packing as the right-hand side variable. Once the model includes country fixed-effects, court purges and packing do not have an effect on trust anymore. This is robust once controls are included.
+
+-\> Reverse Models from Script 3
+
+Still, I additionally ran a dynamic model including a dummy on whether court purging or packing had already taken place in the years ahead. This dummy was constructed for 3, 5 and 7 lags. The model was run with the dummy as a simple control and with a triple interaction between the dummy and the two independent variables on trust and populism. In another model, all cases after the first occurrence of court packing or purges were excluded. All models shows similar results to the main model presented.
+
+-\> Dynamic Models from Script
+
+# Results
+
+The results confirm that court packing and purges happen more frequently under populist governments. As expected, the coefficient for populism is positive and significant throughout all models. Surprisingly though, higher trust in the judiciary only decreases the likelihood of political changes in court composition if populists are in power. Thus, the third hypothesis can be confirmed.
+
+\blandscape
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| tbl-cap: OLS Regression Models
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/test")
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+\elandscape
+
+However, the results raise some doubts about whether the public's attitudes toward the court act as the shield as we have always understood them. The models confirm that populists do indeed change court composition less often if the share of the public that trusts the judiciary are higher (see @fig-interaction). In general, this effects does not seem to exist. This raises questions on how strong the public is as a shield and why this shield is more effective if populists are in power. These results are consistent if I use random-country intercepts instead of fixed-effects. The only specification that yields a significant negative effect is if no controls are included.
+
+![Average marginal effect of populist in power conditioned by share of respondents who trust the judiciary.](results/graphs/ols_interaction.pdf){#fig-interaction fig-align="center" width="60%"}
+
+The results do not change in a meaningful way once I include whether the judiciary has already been subject to purges or packing in the last year (see XXX, the findings are robust for different lags).
+
+**XXX Discuss that there is variance within states**
+
+# Conclusion
+
+-   Democratic Education (see Anja Neundorf paper)
+
+{{< pagebreak >}}
+
+# References
+
+::: {#refs}
+:::
+
+::: {#appendix-count}
+# Appendix
+
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| V-Dem Codebook Description                                                                                                                                                                                                                                                                                                                                          |
++=====================================================================================================================================================================================================================================================================================================================================================================+
+| **v2jupurge**                                                                                                                                                                                                                                                                                                                                                       |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| "Question: Judges are sometimes removed from their posts for cause, as when there is strong evidence of corruption; however, some judges are removed arbitrarily, typically for political reasons. With this distinction in mind, please describe the removal of judges that occurred this calendar year.                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Clarification: The second and third response categories permit you to distinguish among limited arbitrary removals (i.e., when only a few judges are targeted) by the political importance of the removal. For example, you may consider the arbitrary removal of a few high court judges as more important than the arbitrary removal of a few lower court judges. |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Responses:                                                                                                                                                                                                                                                                                                                                                          |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| \colorbox{blue!30}{0: There was a massive, arbitrary purge of the judiciary.}                                                                                                                                                                                                                                                                                       |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| \colorbox{blue!30}{1: There were limited but very important arbitrary removals. }                                                                                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| \colorbox{red!30}{2: There were limited arbitrary removals.}\                                                                                                                                                                                                                                                                                                       |
+| 3: Judges were removed from office, but there is no evidence that the removals were arbitrary.\                                                                                                                                                                                                                                                                     |
+| 4: Judges were not removed from their posts."                                                                                                                                                                                                                                                                                                                       |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| **v2jupack**                                                                                                                                                                                                                                                                                                                                                        |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| "Question: The size of the judiciary is sometimes increased for very good reasons, as when judges are added to manage an increasing caseload; however, sometimes judges are added purely for political reasons. With this distinction in mind, please describe any increases in the size of the judiciary that occurred this calendar year.                         |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Clarification: The second and third response categories permit you to distinguish among limited court packing efforts (i.e. when relatively few judgeships are added) by the political importance of the packing. For example, you may consider the packing of the high court to be more important than the packing of a lower court.                               |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Responses:                                                                                                                                                                                                                                                                                                                                                          |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| \colorbox{blue!30}{0: There was a massive, politically motivated increase in the number of }                                                                                                                                                                                                                                                                        |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| \colorbox{blue!30}{judgeships across the entire judiciary. }                                                                                                                                                                                                                                                                                                        |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| \colorbox{blue!30}{1: There was a limited, politically motivated increase in the number of}                                                                                                                                                                                                                                                                         |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| \colorbox{blue!30}{judgeships on very important courts. }                                                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| \colorbox{red!30}{2: There was a limited, politically motivated increase in the number of}                                                                                                                                                                                                                                                                          |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| \colorbox{red!30}{judgeships. }\                                                                                                                                                                                                                                                                                                                                    |
+| 3: Judgeships were added to the judiciary, but there is no evidence that the increase was politically motivated; or there was no increase                                                                                                                                                                                                                           |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+:::
+
+{{< pagebreak >}}
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| error: false
+#| tbl-cap: Countries included in study
+
+countries <- readRDS("results/tables/country_overview.rds")
+
+countries |> 
+  gt() |> 
+  as_latex()
+```
+
+{{< pagebreak >}}
+
+```{=tex}
+\KOMAoptions{paper=landscape,pagesize} 
+\recalctypearea
+\newgeometry{top=10mm, left=10mm, bottom=10mm, right=10mm}
+```
+```{r}
+#| include: false
+
+library(xtable)
+
+df_final <- readRDS("data/analysis.RDS")
+
+variableoverview <- xtable(summarize(df_final, type = "numeric"))
+
+```
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| error: false
+
+variableoverview 
+```
+
+{{< pagebreak >}}
+
+## Model Comparison
+
+<div>
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| error: false
+#| tbl-cap: Comparison of differen Model Specifications.
+
+
+```
+
+{{< pagebreak >}}
+
+</div>
+
+<!--# `r nrow(data)` -->
+
+```{r}
+
+```

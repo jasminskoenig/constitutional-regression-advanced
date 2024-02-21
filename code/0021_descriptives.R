@@ -13,6 +13,18 @@ partydata <- readRDS("data/party_populism.rds")
 ## Government Data ----
 
 governmentdata <- readRDS("data/ccpc_vdem_eu_la.rds")
+analysisdata <- readRDS("data/analysis.rds") 
+
+analysisdata |>
+  mutate(id = paste0(country, year)) ->
+  analysisdata
+
+governmentdata |> 
+  mutate(id = paste0(country, year)) |> 
+  mutate(analysis = if_else(
+    id %in% analysisdata$id, 1, 0
+  )) ->
+  governmentdata
 
 ## Theme ----
 
@@ -190,3 +202,114 @@ governmentdata |>
   scale_fill_manual(values = c("#689295", "#263f3f"))
 
 ggsave("slides/slides_cdm/images/ruthscore.png", width = 16, height = 10, units = "in", dev = "png")
+
+# Trust Data ----
+
+governmentdata |> 
+  mutate(imputed = as.factor(if_else(
+    is.na(trust_share) & !is.na(trust_share_linear_imp), 1, 0
+  ))) |> 
+  ggplot(aes(x = year,
+             y = trust_share_linear_imp, 
+             color = imputed, 
+             shape = factor(analysis),
+             group = country))+
+  geom_point(size = 0.4) +
+  geom_line() +
+  facet_wrap(~ country) +
+  theme_minimal()
+
+governmentdata |> 
+  mutate(imputed = as.factor(if_else(
+    is.na(trust_share) & !is.na(trust_share_linear_imp), 1, 0
+  ))) |> 
+  ggplot(aes(x = year,
+             y = trust_share_linear_imp, 
+             color = analysis, 
+             group = country))+
+  geom_point(size = 0.4) +
+  geom_line() +
+  facet_wrap(~ country) +
+  theme_minimal()
+
+governmentdata |> 
+  filter(jud_replace == 1) |> 
+  select(country, 
+         year, 
+         trust_share, 
+         trust_share_imp_lastv, 
+         trust_share_linear_imp,
+         trust_share_NAyears,
+         trust_share_NAchange) |> 
+  gt()
+
+# General Decrease in Judicial Independence ----
+
+governmentdata |> 
+  group_by(country) |> 
+  mutate(regressed = if_else(lag(v2juhcind) > v2juhcind, 1, 0)) |> 
+  ungroup() |> 
+  group_by(year) |> 
+  summarize(n = sum(regressed, na.rm = TRUE)) |> 
+  ggplot(aes(x= year, 
+             y = n)) +
+  geom_point() +
+  geom_line()
+
+df_final |> 
+  mutate(populism = if_else(ruth_populism == 1, "Pop", "Nopop")) |> 
+  ggplot(aes(x = lagged_trust_share_linear_imp_1)) +
+  geom_histogram() +
+  facet_grid(populism ~ firstchange5)
+
+df_final |> 
+  filter(ruth_populism == 1)
+
+library(ggstatsplot)
+ggbetweenstats(
+  data = df_final,
+  x = ruth_populism,
+  y = lagged_trust_share_linear_imp_1
+)
+ggbetweenstats(
+  data = df_final,
+  x = ruth_populism,
+  y = jud_replace_cont
+)
+ggbetweenstats(
+  data = df_final,
+  x = jud_replace,
+  y = lagged_trust_share_linear_imp_1
+)
+df_final |>  mutate(firstchange5 = as.factor(firstchange5)) -> df_final
+ggbetweenstats(
+  data = df_final |> filter(),
+  x = firstchange5,
+  y = lagged_trust_share_linear_imp_1
+)
+
+# Tables ----
+
+governmentdata |> 
+  filter(analysis == 1) |>
+  mutate(year = as.numeric(as.character(year))) |> 
+  group_by(country) |> 
+  dplyr::summarize(N = n(),
+                   Start = min(year, na.rm = TRUE),
+                   End = max(year),
+                   .groups = "drop") ->
+  countries
+
+governmentdata |> 
+  mutate(year = as.character(year)) |> 
+  filter(is.na(trust_share) & !is.na(trust_share_linear_imp)) |> 
+  group_by(country) |> 
+  select(country, year) |> 
+  dplyr::summarize(Imputed = paste(year, collapse = ", ")) ->
+  imputed
+
+countries |> 
+  left_join(imputed, by = "country") ->
+  countries
+
+saveRDS(countries, "results/tables/country_overview.rds")
