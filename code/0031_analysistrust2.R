@@ -95,14 +95,6 @@ instr = c("v2juaccnt_mean_3",
 fe = "country"
 
 df4 |> 
-  filter(!country %in% c("Norway", 
-                         "Moldova", 
-                         "Ukraine",
-                         "Bosnia and Herzegovina",
-                         "United Kingdom",
-                         "Switzlerand",
-                         "Belarus",
-                         "Icleand")) |> 
   select(any_of(c(depv, indepv, contr, instr, fe)), year) |> 
   na.omit() ->
   df_final
@@ -114,56 +106,52 @@ write_rds(df_final, "data/analysis.rds")
 ## OLS MODEL ----
 
 form <- gf({depv} ~ {indepv} + {contr} + {fe})
+
+# ols without robust SE
 ols <- lm(form,
           data = df_final)
+# robust SE with sandwich
 coeftest(ols,
          vcov = vcovCL,
          type = "HC3",
          df = 40,
          cluster = ~country)
-form <- gf({depv} ~ {indepv} + {contr})
+# robust SE with estimatr
 ols_robust <- lm_robust(
   form,
   data = df_final,
   clusters = country,
-  fixed_effects = ~country,
   se_type = "stata"
 )
+# There's a clear difference between both.
 summary(ols)
 summary(ols_robust)
+# No correlation between predictors
 vif(ols, type = "predictor")
+# Save for Paper
 saveRDS(ols, "results/tables/ols_robust.rds")
 
-levels <- seq(
-  min(df_final$lagged_trust_share_linear_imp_1, na.rm = TRUE),
-  max(df_final$lagged_trust_share_linear_imp_1, na.rm = TRUE),
-  0.05
-)
+# get levels for trust data for which to calculate AME
+levels <- get_current_trust_levels()
+# create new data for prediction (only ruth_populism and trust vary, all other at mean)
+pred_data <- datagrid(ruth_populism = c(1, 0), 
+                      lagged_trust_share_linear_imp_1 = levels, 
+                      model = ols_robust)
+# calculate AME and CIs for predicted data
+meff <- marg_effects(ols_robust)
 
-marginaleffects(ols_robust,
-                variables = "ruth_populism",
-                newdata = datagrid(ruth_populism = c(1, 0), 
-                                   lagged_trust_share_linear_imp_1 = levels)) |> 
-  mutate(lower = estimate - 1.96 * std.error, 
-         upper = estimate + 1.96 * std.error,
-         lower_90 = estimate - 1.64 * std.error, 
-         upper_90 = estimate + 1.64 * std.error,
-         lower_99 = estimate - 3.58 * std.error, 
-         upper_99 = estimate + 3.58 * std.error) ->
-  meff
-
+# plot interaction
 meff |> 
   ggplot(aes(x = lagged_trust_share_linear_imp_1, y = estimate)) +
   geom_hline(yintercept = 0, color = "#C95D63", linetype = "dashed") +
-  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.8, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = lower_99, ymax = upper_99), alpha = 0.4, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = cilower, ymax = ciupper, alpha = ci_size), fill = "darkslategrey") +
   geom_line(aes()) +
   geom_line() +
   labs(x = "Trust in Judiciary",
        y = "AME of Populism",
        caption = "") +
-  scale_x_percent(limits = c(0, 1)) 
+  scale_x_percent(limits = c(0, 1))  +
+  scale_alpha_manual(values = c(0.7, 0.5, 0.2))
 
 ggsave("results/graphs/ols_interaction.pdf",
        device = cairo_pdf,
@@ -172,22 +160,30 @@ ggsave("results/graphs/ols_interaction.pdf",
 
 ### OLS BASE MODELS ----
 
+# only independent variables
 form <- gf({depv} ~ ruth_populism + lagged_trust_share_linear_imp_1)
 baseols <- robust_ols(form)
 summary(baseols)
 
+# plus fixed-effects
 form <- gf({depv} ~ ruth_populism + lagged_trust_share_linear_imp_1 + {fe})
 baseols2 <- robust_ols(form)
 summary(baseols2)
 
+# plus controls
 form <- gf({depv} ~ lagged_trust_share_linear_imp_1 + ruth_populism + {contr} + {fe})
 baseols3 <- robust_ols(form)
 summary(baseols3)
 
+# controls, but no fixed-effects
 form <- gf({depv} ~ lagged_trust_share_linear_imp_1 + ruth_populism + {contr})
 baseols4 <- robust_ols(form)
 summary(baseols4)
 
+
+#### COMPARISON TABLE  ----
+
+# rename coefs
 coef_names <- c(
   "ruth_populism" = "Populist",
   "lagged_trust_share_linear_imp_1" = "Trust (lagged)",
@@ -202,6 +198,7 @@ coef_names <- c(
   "trust_hat × ruth_populism" = "Trûst x Populist"
 )
 
+# add info on FE
 olsrows <- data.frame("Coefficients" = "Country FE",
                       "(1)" = "No",
                       "(2)" = "Yes",
@@ -209,102 +206,27 @@ olsrows <- data.frame("Coefficients" = "Country FE",
                       "(4)" = "No",
                       "(5)" = "Yes")
 attr(olsrows, "position") <- 15
+
+# create table
+# XXX The interaction effects os getting lost right now?!
 modelsummary(list(baseols, baseols2, baseols3, baseols4, ols_robust),
              coef_rename = coef_names,
              estimate  = "{estimate}{stars}",
              statistic = c("conf.int"),
              coef_omit = c("Intercept|country"),
-             add_rows = olsrows,
-             output = "latex") |> 
+             add_rows = olsrows
+             #output = "latex"
+             ) |> 
   kable_styling() |> 
   kable_classic_2() ->
   mainmodels
 
-#unsure yet which is the best way to go
+#unsure yet which is the best way to go - I think write Lines, I'm on that
 save_kable(mainmodels, file = "results/tables/my_table.tex")
 
 test <- as.character(mainmodels)
 writeLines(test, "results/tables/test")
 saveRDS(mainmodels, "results/tables/test.rds")
-
-## 2SLS MODEL JUDICIAL REPLACEMENT ----
-
-form_iv <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
-m_iv <- ivreg(form_iv,
-                  data = df_final)
-summary(m_iv)
-
-# first stage
-form_fs <- gf(lagged_trust_share_linear_imp_1 ~ ruth_populism + {contr} + {instr})
-form_fs_null <- gf(lagged_trust_share_linear_imp_1 ~ ruth_populism + {contr} )
-firststage <- plm(form_fs,
-                 data = df_final,
-                 index = c("country", "year"),
-                 model = "within")
-summary(firststage)
-
-firststagenull <- plm(form_fs_null,
-                 data = df_final,
-                 index = c("country", "year"),
-                 model = "within")
-
-# tests for first stage
-
-# simple F-test
-waldtest(firststage, firststagenull)
-
-# Second Stage
-df_final$trust_hat <- as.vector(fitted(firststage))
-indepv = c("trust_hat", 
-           "ruth_populism",
-           "trust_hat*ruth_populism")
-form_ss <- gf({depv} ~ {indepv}  + {contr})
-secondstage <- plm(form_ss,
-           data = df_final,
-           index = c("country", "year"),
-           model = "within")
-summary(secondstage)
-
-# Tests
-# wu-hausmann
-phtest(secondstage, ols)
-
-levels_hat <- seq(
-  min(df_final$trust_hat, na.rm = TRUE),
-  max(df_final$trust_hat, na.rm = TRUE),
-  0.05
-)
-
-modelsummary(list(firststage, secondstage),
-             )
-
-form_ss <- gf({depv} ~ {indepv}  + {contr} + {fe})
-secondstage <- lm(form_ss,
-                   data = df_final)
-
-marginaleffects(secondstage,
-                variables = "ruth_populism",
-                newdata = datagrid(ruth_populism = c(1, 0), 
-                                   trust_hat = levels_hat)) |> 
-  mutate(lower = estimate - 1.96 * std.error, 
-         upper = estimate + 1.96 * std.error,
-         lower_90 = estimate - 1.64 * std.error, 
-         upper_90 = estimate + 1.64 * std.error,
-         lower_99 = estimate - 3.58 * std.error, 
-         upper_99 = estimate + 3.58 * std.error) ->
-  meff
-
-meff |> 
-  ggplot(aes(x = trust_hat, y = estimate)) +
-  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
-  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.8, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = lower_99, ymax = upper_99), alpha = 0.4, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "darkslategrey") +
-  geom_line() +
-  labs(x = "",
-       y = "AME of Populism",
-       caption = "") +
-  theme_minimal()
 
 ## RANDOM EFFECTS ----
 
@@ -382,6 +304,85 @@ df_final |>
   geom_histogram() +
   facet_wrap(~firstchange5)
 
+## 2SLS MODEL JUDICIAL REPLACEMENT ----
+
+form_iv <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
+m_iv <- ivreg(form_iv,
+              data = df_final)
+summary(m_iv)
+
+# first stage
+form_fs <- gf(lagged_trust_share_linear_imp_1 ~ ruth_populism + {contr} + {instr})
+form_fs_null <- gf(lagged_trust_share_linear_imp_1 ~ ruth_populism + {contr} )
+firststage <- plm(form_fs,
+                  data = df_final,
+                  index = c("country", "year"),
+                  model = "within")
+summary(firststage)
+
+firststagenull <- plm(form_fs_null,
+                      data = df_final,
+                      index = c("country", "year"),
+                      model = "within")
+
+# tests for first stage
+
+# simple F-test
+waldtest(firststage, firststagenull)
+
+# Second Stage
+df_final$trust_hat <- as.vector(fitted(firststage))
+indepv = c("trust_hat", 
+           "ruth_populism",
+           "trust_hat*ruth_populism")
+form_ss <- gf({depv} ~ {indepv}  + {contr})
+secondstage <- plm(form_ss,
+                   data = df_final,
+                   index = c("country", "year"),
+                   model = "within")
+summary(secondstage)
+
+# Tests
+# wu-hausmann
+phtest(secondstage, ols)
+
+levels_hat <- seq(
+  min(df_final$trust_hat, na.rm = TRUE),
+  max(df_final$trust_hat, na.rm = TRUE),
+  0.05
+)
+
+modelsummary(list(firststage, secondstage),
+)
+
+form_ss <- gf({depv} ~ {indepv}  + {contr} + {fe})
+secondstage <- lm(form_ss,
+                  data = df_final)
+
+marginaleffects(secondstage,
+                variables = "ruth_populism",
+                newdata = datagrid(ruth_populism = c(1, 0), 
+                                   trust_hat = levels_hat)) |> 
+  mutate(lower = estimate - 1.96 * std.error, 
+         upper = estimate + 1.96 * std.error,
+         lower_90 = estimate - 1.64 * std.error, 
+         upper_90 = estimate + 1.64 * std.error,
+         lower_99 = estimate - 3.58 * std.error, 
+         upper_99 = estimate + 3.58 * std.error) ->
+  meff
+
+meff |> 
+  ggplot(aes(x = trust_hat, y = estimate)) +
+  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
+  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.8, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = lower_99, ymax = upper_99), alpha = 0.4, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "darkslategrey") +
+  geom_line() +
+  labs(x = "",
+       y = "AME of Populism",
+       caption = "") +
+  theme_minimal()
+
 # COMPARISON ----
 
 modelsummary(list("OLS" = ols, 
@@ -443,7 +444,6 @@ baseols <- lm(form,
 summary(baseols)
 
 df4 |> 
-  filter(!country %in% c("Norway", "Moldova", "Ukraine", "Bosnia and Herzegovina", "Switzlerand", "Belarus")) |> 
   select(any_of(c(depv, indepv, contr, instr, fe)), laterchange, year) |> 
   na.omit() ->
   df_final
@@ -461,7 +461,6 @@ summary(m_iv)
 
 depv = "jud_replace_con"
 df4 |> 
-  filter(!country %in% c("Norway", "Moldova", "Ukraine", "Bosnia and Herzegovina", "Switzlerand", "Belarus")) |> 
   select(any_of(c(depv, indepv, contr, instr, fe)), year) |> 
   na.omit() ->
   df_final
@@ -481,7 +480,6 @@ df_final |>
 depv = "jud_replace_cont_mean"
 
 df4 |> 
-  filter(!country %in% c("Norway", "Moldova", "Ukraine", "Bosnia and Herzegovina", "Switzlerand", "Belarus")) |> 
   select(any_of(c(depv, indepv, contr, instr, fe))) |> 
   na.omit() ->
   df_final
@@ -499,7 +497,6 @@ instr = c("v2juaccnt_mean_5",
           "v2juaccnt_mean_5*ruth_populism")
 
 df4 |> 
-  filter(!country %in% c("Norway", "Moldova", "Ukraine", "Bosnia and Herzegovina", "Switzlerand", "Belarus")) |> 
   select(any_of(c(depv, indepv, contr, instr, fe))) |> 
   na.omit() ->
   df_final
@@ -523,7 +520,6 @@ instr = c("v2juaccnt_mean_3",
           "v2juaccnt_mean_3*ruth_populism")
 
 df4 |> 
-  filter(!country %in% c("Norway", "Moldova", "Ukraine", "Bosnia and Herzegovina", "Switzlerand", "Belarus")) |> 
   select(any_of(c(depv, indepv, contr, instr, fe))) |> 
   na.omit() ->
   df_final
@@ -538,7 +534,6 @@ indepv = c("lagged_trust_share_1",
            "lagged_trust_share_1*ruth_populism")
 
 df4 |> 
-  filter(!country %in% c("Norway", "Moldova", "Ukraine", "Bosnia and Herzegovina", "Switzlerand", "Belarus")) |> 
   select(any_of(c(depv, indepv, contr, instr, fe))) |> 
   na.omit() ->
   df_final
