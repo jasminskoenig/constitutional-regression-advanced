@@ -19,6 +19,7 @@ library(marginaleffects)
 library(car)
 library(scales)
 library(kableExtra)
+library(fixest)
 
 
 ## Graphics ----
@@ -72,7 +73,8 @@ ccpc_vdem %>%
                          "Bosnia and Herzegovina", 
                          "Switzlerand", 
                          "Belarus",
-                         "Iceland")) ->
+                         "Iceland",
+                         "United Kingdom")) ->
   df4
 
 # ANALYSIS JUDICIAL REPLACEMENT ----
@@ -114,9 +116,23 @@ write_rds(df_final, "data/analysis.rds")
 form <- gf({depv} ~ {indepv} + {contr} + {fe})
 ols <- lm(form,
           data = df_final)
+coeftest(ols,
+         vcov = vcovCL,
+         type = "HC3",
+         df = 40,
+         cluster = ~country)
+form <- gf({depv} ~ {indepv} + {contr})
+ols_robust <- lm_robust(
+  form,
+  data = df_final,
+  clusters = country,
+  fixed_effects = ~country,
+  se_type = "stata"
+)
 summary(ols)
+summary(ols_robust)
 vif(ols, type = "predictor")
-saveRDS(ols, "results/tables/ols.rds")
+saveRDS(ols, "results/tables/ols_robust.rds")
 
 levels <- seq(
   min(df_final$lagged_trust_share_linear_imp_1, na.rm = TRUE),
@@ -124,7 +140,7 @@ levels <- seq(
   0.05
 )
 
-marginaleffects(ols,
+marginaleffects(ols_robust,
                 variables = "ruth_populism",
                 newdata = datagrid(ruth_populism = c(1, 0), 
                                    lagged_trust_share_linear_imp_1 = levels)) |> 
@@ -157,19 +173,20 @@ ggsave("results/graphs/ols_interaction.pdf",
 ### OLS BASE MODELS ----
 
 form <- gf({depv} ~ ruth_populism + lagged_trust_share_linear_imp_1)
-baseols <- lm(form,
-              data = df_final)
+baseols <- robust_ols(form)
 summary(baseols)
 
 form <- gf({depv} ~ ruth_populism + lagged_trust_share_linear_imp_1 + {fe})
-baseols2 <- lm(form,
-               data = df_final)
-summary(baseols)
+baseols2 <- robust_ols(form)
+summary(baseols2)
 
-form <- gf({depv} ~ lagged_trust_share_linear_imp_1 + ruth_populism +{contr} + {fe})
-baseols3 <- lm(form,
-               data = df_final)
+form <- gf({depv} ~ lagged_trust_share_linear_imp_1 + ruth_populism + {contr} + {fe})
+baseols3 <- robust_ols(form)
 summary(baseols3)
+
+form <- gf({depv} ~ lagged_trust_share_linear_imp_1 + ruth_populism + {contr})
+baseols4 <- robust_ols(form)
+summary(baseols4)
 
 coef_names <- c(
   "ruth_populism" = "Populist",
@@ -189,9 +206,10 @@ olsrows <- data.frame("Coefficients" = "Country FE",
                       "(1)" = "No",
                       "(2)" = "Yes",
                       "(3)" = "Yes",
-                      "(4)" = "Yes")
+                      "(4)" = "No",
+                      "(5)" = "Yes")
 attr(olsrows, "position") <- 15
-modelsummary(list(baseols, baseols2, baseols3, ols),
+modelsummary(list(baseols, baseols2, baseols3, baseols4, ols_robust),
              coef_rename = coef_names,
              estimate  = "{estimate}{stars}",
              statistic = c("conf.int"),
@@ -202,6 +220,7 @@ modelsummary(list(baseols, baseols2, baseols3, ols),
   kable_classic_2() ->
   mainmodels
 
+#unsure yet which is the best way to go
 save_kable(mainmodels, file = "results/tables/my_table.tex")
 
 test <- as.character(mainmodels)
@@ -300,9 +319,16 @@ rols <- plm(form,
             index = c("country", "year"),
             model = "random")
 summary(rols)
+coeftest(rols, 
+         vcov = vcovHC(rols, 
+                       type="HC4", 
+                       cluster="group"))
 
 ## DYNAMIC MODEL ----
 
+indepv = c("lagged_trust_share_linear_imp_1", 
+           "ruth_populism")
+dynamicv = c("firstchange5")
 depv = "jud_replace_cont"
 contr = c("executive",
           "surplus",
@@ -315,23 +341,14 @@ df4 |>
   na.omit() ->
   df_final
 
-indepv = c("lagged_trust_share_linear_imp_1", 
-           "ruth_populism")
-dynamicv = c("firstchange5",
-             "firstchange5*lagged_trust_share_linear_imp_1")
 form <- gf({depv} ~ {indepv} + {dynamicv} + {contr} +  {fe})
-dols <- lm(form,
-           data = df_final)
+dols <- robust_ols(form)
 summary(dols)
 
-indepv = c("lagged_trust_share_linear_imp_1", 
-           "ruth_populism",
-           "lagged_trust_share_linear_imp_1*ruth_populism")
 dynamicv = c("firstchange5",
              "firstchange5*lagged_trust_share_linear_imp_1*ruth_populism")
 form <- gf({depv} ~ {indepv} + {dynamicv} + {contr} +  {fe})
-dols <- lm(form,
-          data = df_final)
+dols <- robust_ols(form)
 summary(dols)
 
 marginaleffects(dols,
@@ -368,7 +385,7 @@ df_final |>
 # COMPARISON ----
 
 modelsummary(list("OLS" = ols, 
-                  "Second Stage" = secondstage, 
+                  #"Second Stage" = secondstage, 
                   "Dynamic OLS" = dols, 
                   "Random Effects OLS" = rols),
              estimate  = "{estimate}{stars}",
@@ -390,6 +407,7 @@ modelsummary(list("OLS" = ols,
              output = "latex"
              ) ->
   modelcomparison
+modelcomparison
 saveRDS(modelcomparison, "results/tables/modelcomparison_trust.rds")
 
 # ROBUSTNESS ----
@@ -408,17 +426,9 @@ reverseols3 <- lm(form,
                  data = df4)
 summary(reverseols3)
 
-## NO FE ----
-
-form <- gf({depv} ~ {indepv})
-ols <- lm(form,
-          data = df_final)
-summary(ols)
-
-form <- gf({depv} ~ {indepv} + {contr})
-ols <- lm(form,
-          data = df_final)
-summary(ols)
+form <- gf(dplyr::lead(trust_share_linear_imp, 3) ~ jud_replace_con + {contr} + {fe})
+reverseols4 <- robust_ols(form)
+summary(reverseols3)
 
 ## ----
 
