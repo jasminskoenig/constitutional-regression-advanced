@@ -5,6 +5,11 @@ library(stringi)
 library(readtext)
 library(readxl)
 library(WDI)
+library(beepr)
+
+# FUNCTIONS
+
+source("src/cleaning_functions.R")
 
 # ADD VDEM AND CCPC DATA TO PARTYDATA
 
@@ -19,7 +24,7 @@ vdem %>%
 
 
 vdem2 %>% 
-  dplyr::select(country_name, year, country_id, e_regiongeo, v2x_polyarchy, v2x_partip, v2xdd_i_pl,
+  dplyr::select(country_name, year, country_id, iso3 = country_text_id, e_regiongeo, v2x_polyarchy, v2x_partip, v2xdd_i_pl,
          v2x_libdem, v2x_delibdem, v2x_egaldem, v2x_liberal, v2xcl_rol, v2x_cspart, v2xcs_ccsi,
          v2x_jucon, v2jureform_ord, v2jupurge_ord, v2jupurge, v2jupack, v2jupoatck_ord, v2jupack_ord,
          v2juaccnt, v2jucorrdc, v2juhcind, v2juncind, v2juhccomp,
@@ -48,7 +53,8 @@ vdem2 |>
          jud_replace_cont_mean = jud_replace_cont_mean*-1,
          regime_time = str_extract(v2reginfo, "\\(\\d{2}\\/\\d{2}\\/\\d{4}"),
          regime_start = as.numeric(str_extract(regime_time, "\\d{4}")),
-         regime_age = year - regime_start + 1) |> 
+         regime_age = year - regime_start + 1,
+         latin = if_else(e_regiongeo %in% c(17,18), 1, 0)) |> 
   select(-regime_time) ->
   vdem2
 
@@ -108,10 +114,37 @@ ruth_smaller |>
 
 # Add World Bank Data ----
 
-# wbd = WDI(indicator= c('gdp' = 'GDPPCKD',
-#                        'gini' = '3.0.Gini'), 
-#           country=c('MX','CA','US'), 
-#           start=1994, end=2022)
+vdem2 |> 
+  distinct(iso3) |> 
+  filter(!iso3 %in% c("YMD", "DDR", "PSG", "SML", "ZZB")) ->
+  isocountry_vdem
+
+isocountry <- read.csv("data/isocountry.csv")
+
+isocountry_vdem |> 
+  left_join(isocountry |>  select(alpha.2, alpha.3),
+            by = join_by("iso3" == "alpha.3")) |> 
+  filter(!is.na(alpha.2)) |> 
+  pull(alpha.2) ->
+  isocountry_list
+
+wbd = WDI(indicator = c('gdp' = 'NY.GDP.MKTP.CD',
+                       'gdp_growth' = 'NY.GDP.PCAP.KD.ZG'),
+          country = isocountry_list,
+          start = 1994, end=2022)
+
+wbd |> 
+  mutate(
+    gdp_log = log(gdp),
+    gdp_growth_small = gdp_growth / 100
+  ) |> 
+  rename("country_name" = "country") ->
+  wbd_clean
+
+joined_vdata |> 
+  left_join(wbd_clean, 
+            by = c("country_name", "year")) ->
+  joined_vdata
 
 # Add Barometer Data on Trust in Judiciary ----
 
@@ -424,223 +457,41 @@ glimpse(ccpc)
 
 ccpc_vdem <- left_join(joined_vdata,
                        ccpc,
-                       by=c("country","year"))
+                       by=c("country","year")) |> 
+  distinct(country, year, .keep_all = TRUE)
 
 # ADDITIONAL MUTATIONS ----
 
-## IMPUTATION FOR TRUST ----
-
-get_linear_imputation <- function(countryname, variable){
-  #' Returns ccpc_vdem dataframe with added columns
-  #' for linear imputation of chosen variable, number of missing observations
-  #' and the change that has occured in the variable between last
-  #' and next existing observation
-  #' 
-  #' Filters dataframe to country based on given countryname
-  #' Imputes data for given variable
-  
-  # Filter to chosen country
-  ccpc_vdem |> 
-    filter(country == countryname) ->
-    temp_df
-  
-  # Check region of country
-  region <- temp_df |> 
-    distinct(e_regiongeo) |> 
-    pull(e_regiongeo)
-  
-  # Depending on region, the timeframe of the data is set
-  if (region %in% c(1:4)){
-    temp_df |> 
-      filter(year > 1999) ->
-      temp_df_time
-    
-    temp_df |> 
-      filter(year < 2000) ->
-      unused
-  } else if (region %in% c(17:18)){
-    temp_df |> 
-      filter(year > 1994) ->
-      temp_df_time
-    
-    temp_df |> 
-      filter(year < 1995) ->
-      unused
-  } 
-  
-  # If Latinamerica or Europe & there are some observations for given variable
-  # -> data is imputed
-  # -> otherwise variables are returned NA
-  if (region %in% c(1:4, 17:18) & any(!is.na(temp_df[[variable]]))){
-    
-    # to identify observations, row_id is added
-    temp_df_time |> 
-      mutate(
-        row_id = row_number()
-      ) ->
-      temp_df_time
-    
-    # check which rows are not NA for the given variable
-    temp_df_time |> 
-      filter(!is.na(!!sym(variable))) |> 
-      pull(row_id) ->
-      rows_with_values
-    
-    # for each observation that is NA for the given variable
-    temp_df_time %>%
-      # choose the next smallest number from the observations that are not NA
-      mutate(next_smallest = if_else(is.na(!!sym(variable)),
-                                     map_dbl(row_id, ~max(rows_with_values[rows_with_values < .x], na.rm = TRUE)),
-                                     NA),
-             # and the next biggest
-             next_biggest = if_else(is.na(!!sym(variable)),
-                                    map_dbl(row_id, ~min(rows_with_values[rows_with_values > .x], na.rm = TRUE)),
-                                    NA)) ->
-      temp_df2
-    
-    # calculate how far the observation is from the last and next value
-    temp_df2 |> 
-      mutate(difference_last = row_id - next_smallest,
-             difference_next = next_biggest - row_id) ->
-      temp_df3
-
-    get_value_by_row <- function(row_num, data, var_name) {
-      #' returns the value of chosen variable, in chosen data for the chosen row
-      if (is.na(row_num)) {
-        return(NA)
-      } else {
-        return(data[[var_name]][row_num])
-      }
-    }
-    
-    out <- temp_df3 %>%
-      # now using the helper function pick the last and next value
-      mutate(
-        lastvalue = if_else(!is.na(difference_last),
-                            map_dbl(row_id, ~get_value_by_row(max(rows_with_values[rows_with_values < .], na.rm = TRUE), temp_df_time, variable)),
-                            NA),
-        nextvalue = if_else(!is.na(difference_next),
-                            map_dbl(row_id, ~get_value_by_row(min(rows_with_values[rows_with_values > .], na.rm = TRUE), temp_df_time, variable)),
-                            NA),
-        # get the difference between the last and next observation
-        differencerows = abs(next_biggest - next_smallest),
-        # get how much the variable has changed in that time
-        differencevalues = abs(lastvalue - nextvalue),
-        # calculate how large one step is depending on the how much
-        # the variable has changed and how many years are missing
-        step = if_else(
-         is.na(!!sym(variable)),
-         differencevalues / differencerows,
-         NA
-         ),
-        # add one step per observation
-        # this is done multiplying the step with the 
-        # difference to the last observation
-        imputedvalue = case_when(
-          !is.na(!!sym(variable)) ~ !!sym(variable),
-          nextvalue > lastvalue ~ lastvalue + step*difference_last,
-          nextvalue < lastvalue ~ lastvalue - step*difference_last
-        )
-      ) |> 
-      select(-lastvalue, 
-             -nextvalue, 
-             -step,
-             -difference_last,
-             -difference_next,
-             -next_smallest,
-             -next_biggest,
-             -row_id) |> 
-      rename(!!paste0(variable, '_NAyears') := differencerows, 
-             !!paste0(variable, '_NAchange') := differencevalues, 
-             !!paste0(variable, '_linear_imp') := imputedvalue)
-    
-    
-    
-    out <- bind_rows(out, unused) |> 
-      arrange(year)
-    
-  } else {
-    
-    temp_df |> 
-      arrange(year) -> 
-      out
-    
-  }
-  
-  return(out)
-}
+## IMPUTATIONS ----
 
 ccpc_vdem |> 
   distinct(country) |> 
   pull() ->
   all_countries
 
+# function for imputation returns dataset with additional columns for multiple imputations
 ccpc_vdem <- map_dfr(all_countries,  ~get_linear_imputation(.x, "trust_share"))
+ccpc_vdem <- map_dfr(all_countries,  ~get_linear_imputation(.x, "gdp"))
+ccpc_vdem <- map_dfr(all_countries,  ~get_linear_imputation(.x, "gdp_growth_small"))
+
+ccpc_vdem |> 
+  mutate(gdp_linearimp_log = log(gdp_linear_imp)) ->
+  ccpc_vdem
 
 ## MEAN LAGS ----
 
-calculate_lagsummary <- function(var, intervall, func, by_government){
-  #' calculates the chosen function for all lag of the chosen intervall
-  #' function can be sum or mean
-  #' can be done only by government (otherwise by country)
-  
-  if (by_government){
-    ccpc_vdem |> 
-      arrange(country, year) |> 
-      group_by(country, interval_sen) |> 
-      select(country, year, interval_sen, any_of(var)) ->
-      ccpc_vdem_temp
-  } else {
-    ccpc_vdem |> 
-      arrange(country, year) |> 
-      group_by(country) |> 
-      select(country, year, any_of(var)) ->
-      ccpc_vdem_temp
-  }
-  
-  for (i in 1:intervall) {
-    lag_var_name <- paste0("lagged_", var, "_", i)
-    ccpc_vdem_temp |> 
-      mutate(!!lag_var_name := lag(!!as.name(var), i))  ->
-      ccpc_vdem_temp
-    
-  }
-  
-  if (func == "sum"){
-    varname <- paste0(var, "_sum_", intervall)
-    
-    ccpc_vdem_temp %>%
-      rowwise() %>%
-      mutate(sum_var_name := sum(across(starts_with("lagged")))) |> 
-      ungroup() |> 
-      pull(last_col())  ->
-      column
-    
-    return(column)
-  } else {
-    varname <- paste0(var, "_mean_", intervall)
+# For some variables we need the sum of the last years
+# such as constitutional changes or judicial replacements
 
-    ccpc_vdem_temp %>%
-      rowwise() %>%
-      mutate(!!varname := sum(across(starts_with("lag")))/intervall) %>%
-      ungroup() |> 
-      select(-any_of(var)) ->
-      out
-    
-    return(out)
-  }
-  
-}
+evnt_sum_lag10 <- calculate_lagsummary("evnt", 10, func = "sum", by_government = TRUE) 
+evnt_sum_lag5 <- calculate_lagsummary("evnt", 5, func = "sum", by_government = TRUE) 
+evnt_sum_lag3 <- calculate_lagsummary("evnt", 3, func = "sum", by_government = TRUE) 
+jud_replace_con_lag3 <- calculate_lagsummary("jud_replace_con", 5, func = "sum", by_government = FALSE)
+jud_replace_con_lag5 <- calculate_lagsummary("jud_replace_con", 3, func = "sum", by_government = FALSE)
+jud_replace_lag3 <- calculate_lagsummary("jud_replace", 5, func = "sum", by_government = FALSE)
+jud_replace_lag5 <- calculate_lagsummary("jud_replace", 3, func = "sum", by_government = FALSE)
 
-ccpc_vdem$evnt_sum_lag10 <- calculate_lagsummary("evnt", 10, func = "sum", by_government = TRUE)
-ccpc_vdem$evnt_sum_lag5 <- calculate_lagsummary("evnt", 5, func = "sum", by_government = TRUE)
-ccpc_vdem$evnt_sum_lag3 <- calculate_lagsummary("evnt", 3, func = "sum", by_government = TRUE)
-ccpc_vdem$jud_replace_con_lag3 <- calculate_lagsummary("jud_replace_con", 5, func = "sum", by_government = FALSE)
-ccpc_vdem$jud_replace_con_lag5 <- calculate_lagsummary("jud_replace_con", 3, func = "sum", by_government = FALSE)
-ccpc_vdem$jud_replace_lag3 <- calculate_lagsummary("jud_replace", 5, func = "sum", by_government = FALSE)
-ccpc_vdem$jud_replace_lag5 <- calculate_lagsummary("jud_replace", 3, func = "sum", by_government = FALSE)
-
-
+# For others we need the mean
 trust_mean_5 <- calculate_lagsummary("trust_share", 5, func = "mean", by_government = FALSE) 
 trust_mean_3 <- calculate_lagsummary("trust_share", 3, func = "mean", by_government = FALSE) |> 
   select(-starts_with("lagged"))
@@ -662,9 +513,13 @@ judhc_mean_3 <- calculate_lagsummary("v2juhcind", 3, func = "mean", by_governmen
 judcorr_mean_5 <- calculate_lagsummary("v2jucorrdc", 5, func = "mean", by_government = FALSE) 
 judcorr_mean_3 <- calculate_lagsummary("v2jucorrdc", 3, func = "mean", by_government = FALSE) |> 
   select(-starts_with("lagged"))
-jud_replace_cont_mean_5 <- calculate_lagsummary("jud_replace_cont", 5, func = "mean", by_government = FALSE) 
-jud_replace_cont_mean_3 <- calculate_lagsummary("jud_replace_cont", 3, func = "mean", by_government = FALSE) |> 
+gdp_growth_mean_5 <- calculate_lagsummary("gdp_growth_small", 5, func = "mean", by_government = FALSE) 
+gdp_growth_mean_3 <- calculate_lagsummary("gdp_growth_small", 3, func = "mean", by_government = FALSE) |> 
   select(-starts_with("lagged"))
+gdp_log_linear_imp_mean_5 <- calculate_lagsummary("gdp_linearimp_log", 5, func = "mean", by_government = FALSE) 
+gdp_log_linear_imp_mean_3 <- calculate_lagsummary("gdp_linearimp_log", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
+
 
 
 purrr::reduce(list(ccpc_vdem,
@@ -682,23 +537,36 @@ purrr::reduce(list(ccpc_vdem,
                    judhc_mean_3,
                    judcorr_mean_5,
                    judcorr_mean_3,
-                   jud_replace_cont_mean_5,
-                   jud_replace_cont_mean_3), 
+                   gdp_growth_mean_5,
+                   gdp_growth_mean_3,
+                   gdp_log_linear_imp_mean_5,
+                   gdp_log_linear_imp_mean_3,
+                   jud_replace_lag5,
+                   jud_replace_lag3,
+                   jud_replace_con_lag3,
+                   jud_replace_con_lag5,
+                   evnt_sum_lag3,
+                   evnt_sum_lag5,
+                   evnt_sum_lag10
+                   ), 
               dplyr::left_join, 
               by = c("country", "year")) ->
   ccpc_vdem
 
+beep()
+# Define whether court compositions have been changed before for each year
+
 ccpc_vdem |> 
   group_by(country) |> 
   mutate(year = as.numeric(as.character(year))) |> 
-  filter(jud_replace_con == 1) |> 
+  filter(jud_replace == 1) |> 
   summarize(start = min(year),
             .groups = "drop") ->
   firstchange
 
 ccpc_vdem |> 
   group_by(country) |> 
-  summarize(everreplaced = sum(jud_replace_con),
+  summarize(everreplaced = sum(jud_replace),
             .groups = "drop") ->
   firstchange2
 
@@ -711,6 +579,7 @@ ccpc_vdem |>
   left_join(firstchange, by = "country") |> 
   mutate(laterchange = case_when(
     everreplaced > 0 & year > start ~ 1,
+    everreplaced > 0 & year <= start ~ 0,
     everreplaced == 0 ~ 0,
     TRUE ~ NA
     )) |> 
@@ -740,3 +609,4 @@ ccpc_vdem |>
 
 saveRDS(ccpc_vdem_eu_la, "data/ccpc_vdem_eu_la.rds")
 
+beep()
