@@ -92,13 +92,32 @@ joined_vdata |>
 
 ruth <- read_excel("data/ruth_2022.xlsx")
 
+ruth |> 
+  select(country_name, year, leader_name, extremism, populism) |> 
+  filter(populism == "Populist") ->
+  ruth_handcoding
+
+write_csv(ruth_handcoding, "data/ruth_handcoding.csv")
+
+ruth_add <- read_excel("data/ruth_handcoding_lr.xlsx") 
+
+ruth |>  
+  left_join(ruth_add, 
+          by = c("country_name",
+                 "year")) |> 
+  mutate(populism_lr = case_when(
+    is.na(lr) ~ "Non-Populist",
+    lr == "Unclear" ~ NA,
+    TRUE ~ paste0(lr, "-wing Populist"))) ->
+  ruth
+
+
 ruth_smaller <- ruth |> 
   select("country" = "country_name",
          "president" = "leader_name",
          "ruth_populism" = "populism",
          "ruth_extremism" = "extremism",
-         "gdp_log_lag" = "realgdp_pc2011_maddison_log_lagg",
-         "gini" = "gini_disp",
+         "ruth_populism_lr" = "populism_lr",
          year) 
 
 joined_vdata |> 
@@ -444,6 +463,28 @@ ccpc %>%
            TRUE ~ 0)) %>%
   ungroup() ->
   ccpc
+
+ccpc_populism <- ccpc |> 
+  left_join(joined_vdata |>  
+              select(country, year, gov_popul_weighted, e_regiongeo),
+            by=c("country","year")) 
+
+all_zero_check <- function(x) {
+  all(x = 0)
+}
+
+ccpc_populism |> 
+  filter(e_regiongeo %in% c(1:4, 17:18)) |> 
+  mutate(across(30:1233, ~ if_else(. == lag(.), 0, 1))) |> 
+  filter(
+    gov_popul_weighted > 0.5 
+##    | lead(gov_popul_weighted) > 0.5
+    ) ->
+  ccpc_populism_changes
+
+ccpc_populism_changes |> 
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE))) 
+
 
 # only relevant columns 
 ccpc %>%

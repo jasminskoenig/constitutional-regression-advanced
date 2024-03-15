@@ -60,10 +60,10 @@ ccpc_vdem %>%
          poptrust = ruth_populism*lagged_trust_share_1,
          popcorr = ruth_populism*v2jucorrdc_mean_3,
          popacc = ruth_populism*v2juaccnt_mean_3,
-         firstchangecon5 = if_else(jud_replace_con_lag5 > 0, 1, 0),
-         firstchangecon3 = if_else(jud_replace_con_lag3 > 0, 1, 0),
-         firstchange5 = if_else(jud_replace_lag5 > 0, 1, 0),
-         firstchange3 = if_else(jud_replace_lag3 > 0, 1, 0)) |> 
+         firstchangecon5 = if_else(jud_replace_con_sum_5 > 0, 1, 0),
+         firstchangecon3 = if_else(jud_replace_con_sum_3 > 0, 1, 0),
+         firstchange5 = if_else(jud_replace_sum_5 > 0, 1, 0),
+         firstchange3 = if_else(jud_replace_sum_3 > 0, 1, 0)) |> 
   mutate(across(starts_with("v2x"), 
                 .fns = ~ . - lag(.),
                 .names = "lagged_{.col}")) |> 
@@ -75,7 +75,7 @@ ccpc_vdem %>%
                          "Belarus",
                          "Iceland",
                          "United Kingdom")) ->
-  df4
+  df
 
 # ANALYSIS JUDICIAL REPLACEMENT ----
 
@@ -89,12 +89,12 @@ indepv = c("lagged_trust_share_linear_imp_1",
 contr = c("surplus",
           "executive",
           "presidential",
-          "gdp_log_lag")
+          "gdp_growth_small_mean_3")
 instr = c("v2juaccnt_mean_3",
           "v2juaccnt_mean_3*ruth_populism")
 fe = "country"
 
-df4 |> 
+df |> 
   select(any_of(c(depv, indepv, contr, instr, fe)), year) |> 
   na.omit() ->
   df_final
@@ -113,10 +113,8 @@ ols <- lm(form,
 # robust SE with sandwich
 coeftest(ols,
          vcov = vcovCL,
-         type = "HC3",
-         df = 40,
-         cluster = ~country)
-# robust SE with estimatr
+         type = "HC0")
+# clustered SE with estimatr
 ols_robust <- lm_robust(
   form,
   data = df_final,
@@ -214,8 +212,8 @@ modelsummary(list(baseols, baseols2, baseols3, baseols4, ols_robust),
              estimate  = "{estimate}{stars}",
              statistic = c("conf.int"),
              coef_omit = c("Intercept|country"),
-             add_rows = olsrows
-             #output = "latex"
+             add_rows = olsrows,
+             output = "latex"
              ) |> 
   kable_styling() |> 
   kable_classic_2() ->
@@ -225,7 +223,7 @@ modelsummary(list(baseols, baseols2, baseols3, baseols4, ols_robust),
 save_kable(mainmodels, file = "results/tables/my_table.tex")
 
 test <- as.character(mainmodels)
-writeLines(test, "results/tables/test")
+writeLines(mainmodels, "results/tables/test")
 saveRDS(mainmodels, "results/tables/test.rds")
 
 ## RANDOM EFFECTS ----

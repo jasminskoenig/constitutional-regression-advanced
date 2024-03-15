@@ -127,6 +127,19 @@ manifesto |>
   manifesto_coverage
 
 vparty2 |> 
+  filter(e_regiongeo %in% c(1,2,3,4,17,18)) |> 
+  distinct(country_name, year) |> 
+  left_join(manifesto_coverage, 
+            by = join_by("country_name" == "countryname",
+                         "year" == "year")) |> 
+  filter(year > 1990) |> 
+  mutate(included = as.factor(if_else(!is.na(edate), 1, 0))) |> 
+  ggplot(aes(x = year,
+             y = country_name, 
+             fill = included)) + 
+  geom_tile()
+
+vparty2 |> 
   distinct(country_name, year) |> 
   left_join(manifesto_coverage, by = join_by(year, country_name == countryname)) 
 

@@ -28,43 +28,7 @@ governmentdata |>
 
 ## Theme ----
 
-theme_gridY <- theme_ipsum_rc(grid = "") +
-  theme(
-    axis.text = element_text(size = 14),
-    axis.title.x = element_text(size = 18),
-    axis.title.y.left = element_text(size = 18),
-    strip.text = element_text(size = 16),
-    legend.position = "bottom",
-    legend.text = element_text(size = 12),
-    legend.title = element_text(size = 12),
-    legend.key.size = unit(0.5, "cm"),
-    plot.margin = grid::unit(c(1, 2, 0.5, 0), "mm"),
-    panel.border = element_rect(colour = "darkgrey", fill = NA, linewidth = 1),
-    text = element_text(family = "Rajdhani")
-  )
-
-theme_pres <- theme_ipsum_rc(grid = "") +
-  theme(
-    axis.text.y = element_text(size = 120),
-    axis.text.x = element_text(size = 120),
-    axis.title.x = element_text(size = 120, family = "rajdhani"),
-    axis.title.y.left = element_text(size = 120, family = "rajdhani"),
-    strip.text = element_text(size = 25),
-    legend.position = "bottom",
-    legend.text = element_text(size = 120),
-    legend.title = element_text(size = 120),
-    legend.key.size = unit(1, "cm"),
-    plot.caption = element_text(size = 120, family = "rajdhani", face = "plain", hjust = 0.5),
-    plot.margin = grid::unit(c(1, 2, 0.5, 0), "mm"),
-    panel.border = element_rect(colour = "darkgrey", fill = NA, linewidth = 1),
-    text = element_text(family = "rajdhani")
-  )
-
-theme_set(theme_pres)
-
-library(showtext)
-font_add_google(family = "rajdhani", name = "Rajdhani")
-showtext_auto()
+source("src/graphics.R")
 
 # Validity of Policy Indice ----
 
@@ -130,6 +94,32 @@ gov_filtered |>
   filter(gov_popul_weighted > 0.5 & ruth_populism == 0 |
            gov_popul_weighted < 0.5 & ruth_populism == 1) |> 
   select(gov_popul_weighted, ruth_populism, country, year)
+
+# Histogram V-Party in Governments ----
+
+theme_update(panel.grid.major.y = element_line(color = "lightgrey",
+                                        linewidth = 0.3,
+                                        linetype = 1))
+
+governmentdata |> 
+  mutate(latin = as.factor(latin)) |> 
+  ggplot(aes(x = gov_popul_weighted, 
+             fill = latin,
+             group = latin)) +
+  geom_histogram(color = "white",
+                 linewidth = 0.3) +
+  scale_fill_manual(values = c(color_colorful, color_dark),
+                    labels = c("Europe", "Latin America")) +
+  scale_x_continuous(expand = c(0,0),
+                     limits = c(0,1)) +
+  labs(y = "Observations",
+       x = "Weighted Populism Score per Government",
+       fill = element_blank())
+
+ggsave("results/graphs/histogram_populistgov.pdf",
+       device = cairo_pdf,
+       width = 8,
+       height = 5)
 
 ## Cases Constitutional Change under Populist Government ----
 
@@ -313,3 +303,8 @@ countries |>
   countries
 
 saveRDS(countries, "results/tables/country_overview.rds")
+
+# CHANGES UNDER POPULISTS CONTENTS ----
+
+ccpc_populism |> 
+  mutate()
