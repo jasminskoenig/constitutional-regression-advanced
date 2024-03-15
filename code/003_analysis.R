@@ -52,83 +52,116 @@ ccpc_vdem %>%
 # DISSERTATION MODELS ----
 
 plmdata <- pdata.frame(
-  df4, 
+  df4,
   index = c(
     "country",
     "year"
-    )
   )
+)
 
 ## LEFT-WING & WEIGHTED ----
 
 ### LIBDEM -----
-
-mlds <- reg_dem(plmdata$v2x_libdem, 1, plmdata$gov_popul_weighted, plmdata$gov_left)
+mlds <- reg_dem(
+  plmdata$v2x_libdem,
+  1,
+  plmdata$gov_popul_weighted,
+  plmdata$gov_left
+)
 mld <- mlds$`Interaction and Controls`
 summary(mld)
 
-meff_mld <- marg_effects(mld)
+meff_mld <- calc_ame(mld)
 
-plot_mld <- plot_ame(meff_mld, 
-                     mld, 
-                     add_histogram = TRUE)
+plot_mld <- plot_ame(meff_mld,
+  mld,
+  add_histogram = TRUE
+)
 plot_mld
 
 
 ### POLYARCHY ----
 
-mpos <- reg_dem(plmdata$v2x_polyarchy, 1, plmdata$gov_popul_weighted, plmdata$gov_left)
+mpos <- reg_dem(
+  plmdata$v2x_polyarchy,
+  1,
+  plmdata$gov_popul_weighted,
+  plmdata$gov_left
+)
+
 mpo <- mpos$`Interaction and Controls`
 summary(mpo)
 
-meff_mpo <- marg_effects(mpo)
+meff_mpo <- calc_ame(mpo)
 
-plot_mpo <- plot_ame(meff_mpo, 
-                     mpo, 
-                     adapt_tag = TRUE)
+plot_mpo <- plot_ame(meff_mpo,
+  mpo,
+  adapt_tag = TRUE
+)
 plot_mpo
 
 ### PARTIP ----
+mpas <- reg_dem(
+  plmdata$v2x_partip,
+  1,
+  plmdata$gov_popul_weighted,
+  plmdata$gov_left
+)
 
-mpas <- reg_dem(plmdata$v2x_partip, 1, plmdata$gov_popul_weighted, plmdata$gov_left)
 mpa <- mpas$`Interaction and Controls`
 summary(mpa)
 
-meff_mpa <- marg_effects(mpa)
+meff_mpa <- calc_ame(mpa)
 
 plot_mpa <- plot_ame(meff_mpa, mpa)
 plot_mpa
 
 ### EGAL ----
 
-meds <- reg_dem(plmdata$v2x_egaldem, 1, plmdata$gov_popul_weighted, plmdata$gov_left)
+meds <- reg_dem(
+  plmdata$v2x_egaldem,
+  1,
+  plmdata$gov_popul_weighted,
+  plmdata$gov_left
+)
 
 med <- meds$`Interaction and Controls`
 summary(med)
 
-meff_med <- marg_effects(med)
+meff_med <- calc_ame(med)
 
 plot_med <- plot_ame(meff_med, med)
 plot_med
 
 ### CIVIL ----
+mcss <- reg_dem(
+  plmdata$v2x_cspart,
+  1,
+  plmdata$gov_popul_weighted,
+  plmdata$gov_left
+)
 
-mcss <- reg_dem(plmdata$v2x_cspart, 1, plmdata$gov_popul_weighted, plmdata$gov_left)
 mcs <- mcss$`Interaction and Controls`
 summary(mcs)
 
-meff_mcs <- marg_effects(mcs)
+meff_mcs <- calc_ame(mcs)
 
 plot_mcs <- plot_ame(meff_mcs, mcs)
 plot_mcs
 
 ### DELIB----
 
-mdds <- reg_dem(plmdata$v2x_delibdem, 1, plmdata$gov_popul_weighted, plmdata$gov_left)
+mdds <- reg_dem(
+  plmdata$v2x_delibdem,
+  1,
+  plmdata$gov_popul_weighted,
+  plmdata$gov_left
+)
+
 mdd <- mdds$`Interaction and Controls`
 summary(mdd)
 
-meff_mdd <- marg_effects(mdd)
+meff_mdd <- calc_ame(mdd)
 
 plot_mdd <- plot_ame(meff_mdd, mdd)
 plot_mdd
@@ -139,29 +172,28 @@ coef_names <- c(
   "populismscore" = "Populism Score",
   "evnt" = "Constitutional Change",
   "moderator" = "Left-Wing",
-  "surplus" = "Surplus Seats")
+  "surplus" = "Surplus Seats"
+)
 
-rows <- data.frame("Coefficients" = "Country FE",
-                      "(1)" = "Yes",
-                      "(2)" = "Yes",
-                      "(3)" = "Yes",
-                      "(4)" = "Yes",
-                      "(5)" = "Yes")
-attr(rows, "position") <- 15
+rows <- data.frame(
+  "Coefficients" = "Country FE",
+  "(1)" = "Yes",
+  "(2)" = "Yes",
+  "(3)" = "Yes",
+  "(4)" = "Yes",
+  "(5)" = "Yes"
+)
 
-modelsummary(list(mld, mpo, mpa, med, mcs),
-             estimate  = "{estimate}{stars}",
-             statistic = c("conf.int"),
-             coef_omit = c("Intercept"),
-             coef_rename = coef_names,
-             add_rows = rows,
-             output = "latex"
-) |> 
-  kable_styling() |> 
-  kable_classic_2() ->
-  mainmodels
+mainmodellist <- list(mld, mpo, mpa, med, mcs)
 
-writeLines(mainmodels, "results/tables/constitutionalchange_main.tex")
+table_mainmodels <- create_regressiontable(mainmodellist,
+  add_row = TRUE,
+  row_position = 17,
+  row_data = rows,
+  latex = TRUE
+)
+
+writeLines(table_mainmodels, "results/tables/constitutionalchange_main.tex")
 
 ### PLOT MAIN TEXT ----
 
@@ -200,7 +232,8 @@ ggsave("results/graphs/change_effect.pdf",
 
 ### JACKKNIFE COUNTRIES ----
 
-democracytypes <- c("v2x_libdem", "v2x_polyarchy", "v2x_egaldem", "v2x_cspart", "v2x_partip")
+demtypes <- create_names()
+democracytypes <- demtypes$long
 
 jackknife_plots <- map(democracytypes, ~ plot_jackknife(.,
                                         1,
@@ -225,154 +258,41 @@ tables_leads <- map(democracytypes, ~ create_regressiontable_leads(.x))
 
 ## DEMOCRATIC QUALITY AHEAD & WEIGHTED ----
 
-### LIBDEM -----
-
-mld <- plm(lead(v2x_libdem, 1) ~ evnt * gov_popul_weighted * lag(v2x_libdem, 2),
-           model = "random",
-           data = plmdata)
-summary(mld)
-
-### POLYARCHY ----
-
-mpo <- plm(lead(v2x_polyarchy, 1) ~ evnt * gov_popul_weighted * lag(v2x_polyarchy, 2),
-           model = "random",
-           data = plmdata)
-summary(mpo)
-
-### PARTIP ----
-
-mpa <- plm(lead(v2x_partip, 1) ~ evnt * gov_popul_weighted * lag(v2x_partip, 2),
-           model = "random",
-           data = plmdata)
-summary(mpa)
-
-### EGAL ----
-
-med <- plm(lead(v2x_egaldem, 1) ~ evnt * gov_popul_weighted * lag(v2x_egaldem, 2),
-           model = "random",
-           data = plmdata)
-summary(med)
-
-### CIVIL ----
-
-mcs <- plm(lead(v2x_cspart, 1) ~ evnt * gov_popul_weighted * lag(v2x_cspart, 2),
-             model = "random",
-             data = plmdata)
-summary(mcs)
-
-### TABLE ----
+models_lagged <- map(democracytypes, ~reg_main(plmdata[[.]],
+                                               1,
+                                               plmdata$gov_popul_weighted,
+                                               lag(plmdata[[.]], 2)))
 
 coef_names <- c(
   "populismscore" = "Populism Score",
   "evnt" = "Constitutional Change",
   "moderator" = "Lagged Democracy Score",
-  "surplus" = "Surplus Seats")
+  "surplus" = "Surplus Seats"
+)
 
-rows <- data.frame("Coefficients" = "Country FE",
-                   "(1)" = "Yes",
-                   "(2)" = "Yes",
-                   "(3)" = "Yes",
-                   "(4)" = "Yes",
-                   "(5)" = "Yes")
-attr(rows, "position") <- 15
+table_dynamicmodels <- create_regressiontable(models_lagged,
+  add_row = TRUE,
+  row_position = 17,
+  row_data = rows,
+  latex = TRUE
+)
 
-modelsummary(list(mld, mpo, mpa, med, mcs),
-             estimate  = "{estimate}{stars}",
-             statistic = c("conf.int"),
-             coef_omit = c("Intercept"),
-             coef_rename = coef_names,
-             add_rows = rows,
-             output = "latex"
-) |> 
-  kable_styling() |> 
-  kable_classic_2() ->
-  dynamicmodels
-
-writeLines(dynamicmodels, "results/tables/constitutionalchange_dynamic.tex")
+writeLines(table_dynamicmodels, "results/tables/constitutionalchange_dynamic.tex")
 
 
 ## LEFT-WING & RUTH ----
 
-### LIBDEM -----
+models_ruth <- map(democracytypes, ~reg_main(plmdata[[.]],
+                                               1,
+                                               plmdata$ruth_populism_lr))
 
-mld <- plm(lead(v2x_libdem, 1) ~ evnt * ruth_populism_lr,
-           model = "random",
-           data = plmdata)
-summary(mld)
+table_ruthmodels <- create_regressiontable(models_ruth,
+                                              add_row = TRUE,
+                                              row_position = 17,
+                                              row_data = rows
+)
 
-### POLYARCHY ----
-
-mpo <- plm(lead(v2x_polyarchy, 1) ~ evnt * ruth_populism_lr,
-           model = "random",
-           data = plmdata)
-summary(mpo)
-
-### PARTIP ----
-
-mpa <- plm(lead(v2x_partip, 1) ~ evnt * ruth_populism_lr,
-           model = "random",
-           data = plmdata)
-summary(mpa)
-
-### EGAL ----
-
-med <- plm(lead(v2x_egaldem, 1) ~ evnt * ruth_populism_lr,
-           model = "random",
-           data = plmdata)
-summary(med)
-
-### CIVIL ----
-
-mcs <- plm(lead(v2x_cspart, 1) ~ evnt * ruth_populism_lr,
-           model = "random",
-           data = plmdata)
-summary(mcs)
-
-### DELIB ----
-
-mdd <- plm(lead(v2x_delibdem, 1) ~ evnt * ruth_populism_lr,
-           model = "random",
-           data = plmdata)
-summary(mdd)
-
-
-
-## DEMOCRATIC QUALITY AHEAD & RUTH ----
-
-### LIBDEM -----
-
-mld <- plm(lead(v2x_libdem, 1) ~ evnt * ruth_populism * lag(v2x_libdem, 2),
-           model = "random",
-           data = plmdata)
-summary(mld)
-
-### POLYARCHY ----
-
-mpo <- plm(lead(v2x_polyarchy, 1) ~ evnt * ruth_populism * lag(v2x_polyarchy, 2),
-           model = "random",
-           data = plmdata)
-summary(mpo)
-
-### PARTIP ----
-
-mpa <- plm(lead(v2x_partip, 1) ~ evnt * ruth_populism * lag(v2x_partip, 2),
-           model = "random",
-           data = plmdata)
-summary(mpa)
-
-### EGAL ----
-
-med <- plm(lead(v2x_egaldem, 1) ~ evnt * ruth_populism * lag(v2x_egaldem, 2),
-           model = "random",
-           data = plmdata)
-summary(med)
-
-### CIVIL ----
-
-mcs <- plm(lead(v2x_cspart, 1) ~ evnt * ruth_populism * lag(v2x_cspart, 2),
-           model = "random",
-           data = plmdata)
-summary(mcs)
+table_ruthmodels
 
 ### END MAIN MODELS ###
 
