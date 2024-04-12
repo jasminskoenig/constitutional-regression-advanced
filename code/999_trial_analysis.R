@@ -231,9 +231,319 @@ df4 |>
   ungroup() ->
   df4
 
-lmtrust <- lm(trust_share ~ lag(v2jucorrdc) + jud_ind_mean5 + as.factor(country),
+# closest to stata ----
+m_iv <- ivreg(jud_replace ~ lag_trust_share + ruth_populism + lag_trust_share*ruth_populism |
+                jud_ind_mean5 + ruth_populism*jud_ind_mean5 + jud_corr_lag + ruth_populism*jud_corr_lag,
+              data = df4)
+summary(m_iv)
+
+# IV Interactions ----
+m_iv <- ivreg(jud_replace ~ lag_trust_share + ruth_populism + lag_trust_share * ruth_populism |
+                ruth_populism + jud_ind_mean5 + ruth_populism*jud_ind_mean5 + jud_corr_lag + ruth_populism*jud_corr_lag,
+              data = df4)
+summary(m_iv)
+
+predictions(m_iv) |> 
+  distinct(lag_trust_share, ruth_populism, .keep_all = TRUE) |> 
+  ggplot(aes(x = lag_trust_share,
+             y = estimate,
+             ymin = conf.low,
+             ymax = conf.high,
+             color = factor(ruth_populism),
+             fill = factor(ruth_populism))) +
+  geom_hline(yintercept = 0,
+             color = "#C95D63",
+             linetype = "dashed") +
+  geom_line() +
+  geom_ribbon(alpha = 0.2, color = NA)
+
+# Splitting ----
+
+df4_pop <- df4 |>  
+  filter(ruth_populism == 1) 
+
+df4_nop <- df4 |>  
+  filter(ruth_populism == 0) 
+
+m_iv_pop <- ivreg(jud_replace ~ lag_trust_share |
+                jud_ind_mean5 + jud_corr_lag,
+              data = df4_pop)
+summary(m_iv_pop, diagnostics = TRUE)
+
+m_iv_nop <- ivreg(jud_replace ~ lag_trust_share |
+                    jud_ind_mean5 + jud_corr_lag,
+                  data = df4_nop)
+summary(m_iv_nop, diagnostics = TRUE)
+
+predictions(m_iv_pop)  |> 
+  distinct(lag_trust_share, .keep_all = TRUE) |> 
+  ggplot(aes(x = lag_trust_share,
+             y = estimate,
+             ymin = conf.low,
+             ymax = conf.high)) +
+  geom_hline(yintercept = 0,
+             color = "#C95D63",
+             linetype = "dashed") +
+  geom_line() +
+  geom_ribbon(alpha = 0.2, color = NA)
+
+predictions(m_iv_nop)  |> 
+  distinct(lag_trust_share, .keep_all = TRUE) |> 
+  ggplot(aes(x = lag_trust_share,
+             y = estimate,
+             ymin = conf.low,
+             ymax = conf.high)) +
+  geom_hline(yintercept = 0,
+             color = "#C95D63",
+             linetype = "dashed") +
+  geom_line() +
+  geom_ribbon(alpha = 0.2, color = NA)
+
+
+new_data |> 
+  filter(ruth_populism == 0) ->
+  new_data_nop
+
+test <- predict(m_iv_nop, interval="confidence", level=0.99)
+test <- predict(mod2, newdata=newdf, interval="prediction", level=0.99)
+predicitions_nop <- predict(m_iv_nop,
+                terms = "instruments")
+predicitions_nop <- predict(m_iv_nop,
+                            terms = "instruments")
+predicitions_pop <- predict(m_iv_pop,
+                            terms = "instruments")
+
+new_data |> 
+  filter(ruth_populism == 1) ->
+  new_data_pop
+
+modelplot(m_iv_pop, coef_omit = "Intercept")
+modelplot(m_iv_nop, coef_omit = "Intercept")
+
+df5 |> 
+  filter(ruth_populism == 1) ->
+  df5_pop
+
+new_data <- expand.grid(lag_trust_share = seq(min(df5$fitted_firststage, na.rm = TRUE), 
+                                              max(df5$fitted_firststage, na.rm = TRUE), 
+                                              length.out = 100),
+                        ruth_populism = unique(df5$ruth_populism),
+                        jud_ind_mean5 = seq(min(df5$jud_ind_mean5, na.rm = TRUE), 
+                                            max(df5$jud_ind_mean5, na.rm = TRUE), 
+                                            length.out = 100),
+                        jud_corr_lag = seq(min(df5$jud_corr_lag, na.rm = TRUE), 
+                                           max(df5$jud_corr_lag, na.rm = TRUE), 
+                                           length.out = 100))
+predict(
+  m_iv_pop,
+  type = "response",
+  se.fit = FALSE,
+  interval = "confidence",
+  level = 0.95
+)
+
+ggPredict(m_iv_pop,
+          se=TRUE,
+          interactive=FALSE)
+
+# MANUAL IMPLEMENTATION WITH BOOTSTRAPPING ----
+
+bootstrap_2sls <- function(data, new_data, n_boot = 1000) {
+  set.seed(123) # For reproducibility
+  predictions <- replicate(n_boot, {
+    # Resample data
+    boot_data <- data[sample(nrow(data), replace = TRUE), ]
+    
+    # Fit model
+    boot_model <- lm(jud_replace_con ~ ruth_populism + trust_lm + ruth_populism*trust_lm,
+                    data = boot_data)
+    
+    # Predict values
+    predict(boot_model, newdata = new_data)
+    
+    # with marginaleffects
+    predictions(boot_model)
+  })
+
+  # Convert predictions to a data frame
+  pred_df <- as.data.frame(predictions)
+  
+  # Calculate the mean and confidence intervals
+  out <- pred_df %>% 
+    t() |> 
+    as.data.frame() |> 
+    summarise(across(everything(), list(mean = mean, 
+                                        lower95 = ~quantile(., probs = 0.05), 
+                                        upper95 = ~quantile(., probs = 0.95),
+                                        lower99 = ~quantile(., probs = 0.01), 
+                                        upper99 = ~quantile(., probs = 0.99),
+                                        lower90 = ~quantile(., probs = 0.1), 
+                                        upper90 = ~quantile(., probs = 0.9)))) |> 
+    pivot_longer(cols = everything(),
+                 names_to = c("var", "content"),
+                 names_sep = "_",
+                 values_to = "value") |> 
+    pivot_wider(id_cols = var,
+                names_from = content,
+                values_from = value) |> 
+    bind_cols(new_data)
+  
+  return(predictions)
+}
+
+new_data <- expand.grid(trust_lm = seq(min(df5$trust_lm, na.rm = TRUE), 
+                                              max(df5$trust_lm, na.rm = TRUE), 
+                                              length.out = 100),
+                        ruth_populism = unique(df5$ruth_populism))
+
+newbootstrap_2sls_predictions <- function(data, predictiondata, n_boot = 1000) {
+  set.seed(123)  # For reproducibility
+  
+  # Prepare a matrix to store bootstrap predictions
+  coefficient <- predictiondata
+  low <- predictiondata
+  high <- predictiondata
+  
+  for (i in 1:n_boot) {
+    
+    # Resample data with replacement
+    boot_data <- data[sample(nrow(df5), replace = TRUE), ]
+    
+    # Fit model
+    boot_model <- lm(jud_replace_con ~ ruth_populism + trust_lm + ruth_populism*trust_lm,
+                     data = boot_data)
+    
+    # Use `predictions` from `marginaleffects` to get predicted values for new_data
+    preds <- predictions(boot_model, newdata = predictiondata)
+    
+    # Store the predicted values in the matrix
+    coefficient <- 
+      bind_cols(coefficient, preds$estimate)
+    low <- 
+      bind_cols(low, preds$conf.low)
+    high <- 
+      bind_cols(high, preds$conf.high)
+  }
+  
+  return_means <- function(predictedvalues){
+     
+    predictedvalues %>% 
+       t() %>%  
+       as.data.frame() %>% 
+       filter(!row_number() %in% c(1, 2)) %>% 
+       mutate(across(everything(), as.numeric)) ->
+       temp
+     
+     means <- colMeans(temp)
+     names(means) <- NULL
+     predictiondata |> 
+       bind_cols(means) ->
+       predictiondata
+     
+     return(predictiondata)
+  }
+  
+  predictiondata <- return_means(coefficient)
+  predictiondata <- return_means(low)
+  predictiondata <- return_means(high)
+  
+  predictiondata |> 
+    rename("coefficient" = 3,
+           "low" = 4,
+           "high" = 5) ->
+    predictiondata
+  
+  return(predictiondata)
+}
+
+bootstrap_results <- newbootstrap_2sls_predictions(df5, new_data)
+
+# plot new bootstrap 
+
+bootstrap_results |> 
+  ggplot(aes(x = trust_lm,
+             y = coefficient,
+             ymin = low,
+             ymax = high)) +
+  geom_hline(yintercept = 0,
+             linetype = "dashed") +
+  geom_line(aes(color = ruth_populism)) +
+  geom_ribbon(aes(fill = ruth_populism), 
+              alpha = 0.2)
+
+lmtrust <- lm(lag_trust_share ~ lag(v2jucorrdc) + jud_ind_mean5 + ruth_populism + jud_ind_mean5*ruth_populism + lag(v2jucorrdc)*ruth_populism,
    data = df4)
 
+df4 |> 
+  filter(!is.na(jud_corr_lag), !is.na(ruth_populism),!is.na(jud_ind_mean5), !is.na(lag_trust_share)) ->
+  df5
+
+# Extracting fitted values from the lmer model
+fitted_values <- as.vector(fitted(lmtrust))
+# Adding these fitted values to your original dataframe
+df5$trust_lm <- fitted_values
+
+secondstage <- lm(jud_replace_con ~ ruth_populism + trust_lm + ruth_populism*trust_lm,
+                  data = df5)
+
+summary(secondstage)
+
+new_data <- expand.grid(trust_lm = seq(min(df5$trust_lm, na.rm = TRUE), 
+                                              max(df5$trust_lm, na.rm = TRUE), 
+                                              length.out = 100),
+                        ruth_populism = unique(df5$ruth_populism))
+
+# Run and plot old bootstrap bootstrap
+bootstrap_results <- bootstrap_2sls(df5, new_data)
+
+bootstrap_results |> 
+  pivot_longer(
+    cols = contains("9"),
+    names_to = "ci",
+    values_to = "ci_value"
+  ) |>
+  mutate(ci_intervall = str_extract(ci, "\\d{2}"),
+         ci = str_remove(ci, "\\d{2}")) |> 
+  pivot_wider(id_cols = c(mean, trust_lm, ruth_populism, ci_intervall),
+              names_from = ci,
+              values_from = ci_value) |> 
+  filter(ruth_populism == 1) ->
+  bootstrap_forplot
+  
+
+ggplot(bootstrap_forplot,
+       aes(x = trust_lm, 
+                     y = mean, 
+                     ymin = lower, 
+                     ymax = upper)) +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "red") +
+  geom_ribbon(aes(alpha = ci_intervall),
+              fill = "darkslategrey") +
+  geom_line(color = "black") +
+  labs(title = "Bootstrap CI for Predicted Chane in Court Composition by Fitted Trust and Populists in Power",
+       x = "First Stage Fitted Values for Trust", 
+       y = "Predicted Change in Court Composition") +
+  scale_alpha_manual(values = c(0.6, 0.4, 0.2)) +
+  theme_minimal()
+
+predictions(secondstage) |> 
+  distinct(trust_lm, ruth_populism, .keep_all = TRUE) |> 
+  ggplot(aes(x = trust_lm,
+             y = estimate,
+             ymin = conf.low,
+             ymax = conf.high,
+             color = factor(ruth_populism),
+             fill = factor(ruth_populism))) +
+  geom_hline(yintercept = 0,
+             color = "#C95D63",
+             linetype = "dashed") +
+  geom_line() +
+  geom_ribbon(alpha = 0.2, color = NA)
+
+
+#-----------------
 
 firststage <- lm(trust_share ~ ruth_populism  + v2xnp_pres + evnt_sum_lag3 + executive + lag(v2jucorrdc) + jud_ind_mean5 + as.factor(country),
            data = df4)
@@ -368,3 +678,60 @@ df5 |>
 df5 |> 
   filter(country == "Poland" & year == 2017) |> 
   select(trust_share)
+
+# RANDOM EFFECTS RUMBPROBIEREN ----
+
+form_iv <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {instr})
+
+model_random <- tsls(jud_replace ~ lagged_trust_share_1 + evnt_sum_lag3 + executive + 
+                       v2xcs_ccsi + regime_age + (1|country),
+                     x = ~ evnt_sum_lag3 + executive + 
+                       v2xcs_ccsi + regime_age + (1|country) + v2juncind_mean_3 + v2juaccnt_mean_3 + 
+                       v2jucorrdc_mean_3, 
+                     data = df4)
+
+library(plm)
+model_random <- plm(jud_replace ~ lagged_trust_share_1 + evnt_sum_lag3 + executive + 
+                      v2xcs_ccsi + regime_age | evnt_sum_lag3 + executive + 
+                      v2xcs_ccsi + regime_age + v2juncind_mean_3 + v2juaccnt_mean_3 + 
+                      v2jucorrdc_mean_3, 
+                    data = df4_pop,
+                    model = "random")
+summary(model_random)
+
+model_random <- plm(jud_replace ~ lagged_trust_share_1 + evnt_sum_lag3 + executive + 
+                      v2xcs_ccsi + regime_age | evnt_sum_lag3 + executive + 
+                      v2xcs_ccsi + regime_age + v2juncind_mean_3 + v2juaccnt_mean_3 + 
+                      v2jucorrdc_mean_3, 
+                    data = df4_nop,
+                    model = "random")
+summary(model_random)
+
+pred_data_pop <- datagrid(lagged_trust_share_1 = predictions(model_random)$lagged_trust_share_1,
+                          model = model_random)
+pred_data_nop <- datagrid(lagged_trust_share_1 = predictions(m_ivtest)$lagged_trust_share_1,
+                          model = m_iv_nop)
+
+predictions(m_iv_pop, newdata = pred_data_pop) |> 
+  ggplot(aes(x = lagged_trust_share_1,
+             y = estimate,
+             ymin = conf.low,
+             ymax = conf.high)) +
+  geom_hline(yintercept = 0,
+             color = "#C95D63",
+             linetype = "dashed") +
+  geom_line() +
+  geom_ribbon(alpha = 0.2, color = NA)+
+  labs(title = "Populist")
+
+predictions(m_iv_nop, newdata = pred_data_nop) |> 
+  ggplot(aes(x = lagged_trust_share_1,
+             y = estimate,
+             ymin = conf.low,
+             ymax = conf.high)) +
+  geom_hline(yintercept = 0,
+             color = "#C95D63",
+             linetype = "dashed") +
+  geom_line() +
+  geom_ribbon(alpha = 0.2, color = NA) +
+  labs(title = "Non-Populist")

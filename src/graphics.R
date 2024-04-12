@@ -5,10 +5,10 @@ library(hrbrthemes)
 library(ggtext)
 
 # fonts ----
-font_add_google(family = "quicksand", name = "Quicksand")
+font_add_google(family = "nunito", name = "Nunito")
 showtext_auto()
 
-fontname <- "quicksand"
+fontname <- "nunito"
 
 if(!exists("textsize")) {
   textsize <- 22
@@ -45,7 +45,8 @@ theme_base <- theme_ipsum_rc(grid = "X") +
     axis.title.y = element_text(size = textsize,
                                 family = fontname),
     axis.title.x = element_text(size = textsize,
-                                family = fontname),
+                                family = fontname,
+                                margin = margin(t = 10)),
     axis.text.x = element_text(size = textsize/100*88,
                                vjust = 0,
                                family = fontname),
@@ -58,7 +59,7 @@ theme_base <- theme_ipsum_rc(grid = "X") +
     legend.box = "vertical",  
     legend.box.just = "center",
     legend.justification = "center",
-    legend.spacing = grid::unit(c(2, 2, 2, 30), "mm"),
+    legend.spacing = grid::unit(c(2, 10, 2, 30), "mm"),
     legend.text = element_text(size = textsize,
                                family = fontname),
     legend.title = element_text(size = textsize,
@@ -76,20 +77,23 @@ theme_set(theme_base)
 # set-up ----
 theme_regression <- theme_ipsum_rc(grid = "") +
   theme(
-    axis.title.x = element_text(size = 30, family = fontname),
-    axis.text.x = element_text(size = 30, family = fontname),
-    axis.text.y = element_markdown(size = 30, family = fontname),
-    axis.title.y.left = element_text(size = 30, family = fontname),
-    strip.text = element_text(size = 34, family = fontname),
-    panel.grid.major.y = element_line(size = 0.5, color = "lightgrey"),
-    plot.title = element_text(size = 31, family = fontname),
-    plot.subtitle = element_text(size = 31, family = fontname),
-    plot.caption = element_text(size = 28, family = fontname, face = "plain", hjust = 0.5),
+    axis.title.x = element_text(size = textsize, family = fontname),
+    axis.text.x = element_text(size = textsize, family = fontname),
+    axis.text.y = element_markdown(size = textsize, family = fontname),
+    axis.title.y.left = element_text(size = textsize, family = fontname),
+    strip.text = element_text(size = textsize, family = fontname),
+    panel.grid.major.y = element_line(linewidth = 0.5, color = "lightgrey"),
+    plot.title = element_text(size = textsize, family = fontname),
+    plot.subtitle = element_text(size = textsize, family = fontname),
+    plot.caption = element_text(size = textsize, family = fontname, face = "plain", hjust = 0.5),
     legend.position = "bottom",
-    legend.text = element_text(size = 31, family = fontname),
-    legend.title = element_text(size = 30, family = fontname),
+    legend.text = element_text(size = textsize, family = fontname),
+    legend.title = element_text(size = textsize, family = fontname),
     legend.key.size = unit(0.5, "cm"),
+    legend.direction = "horizontal",
+    legend.box = "vertical",
     plot.margin = grid::unit(c(0, 0.5, 0.5, 0), "mm"),
     panel.border = element_rect(colour = "darkgrey", fill = NA, linewidth = 1),
     text = element_text(family = fontname)
   )
+

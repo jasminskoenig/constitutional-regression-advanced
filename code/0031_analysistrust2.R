@@ -1,14 +1,11 @@
 # ANALYSIS TRUST
 
-# ANALYSIS TRUST
-
 # Set-up ----
 
 ## Libraries ----
 library(tidyverse)
 library(stargazer)
 library(patchwork)
-library(ivreg)
 library(glueformula)
 library(lmtest)
 library(sandwich)
@@ -19,13 +16,17 @@ library(marginaleffects)
 library(car)
 library(scales)
 library(kableExtra)
-library(fixest)
+library(estimatr)
+library(glue)
 
 
 ## Graphics ----
 
-source("src/graphics.R")
+source("../../src/graphics.R")
+source("src/analysis_functions.R")
 theme_set(theme_regression)
+
+options(modelsummary_format_numeric_latex = "plain")
 
 # Data ----
 
@@ -57,16 +58,18 @@ ccpc_vdem %>%
            ruth_populism == "Populist" ~ 1,
            TRUE ~ NA
          ),
-         poptrust = ruth_populism*lagged_trust_share_1,
+         poptrust = ruth_populism*lagged_trust_share_low_1,
          popcorr = ruth_populism*v2jucorrdc_mean_3,
          popacc = ruth_populism*v2juaccnt_mean_3,
-         firstchangecon5 = if_else(jud_replace_con_sum_5 > 0, 1, 0),
-         firstchangecon3 = if_else(jud_replace_con_sum_3 > 0, 1, 0),
-         firstchange5 = if_else(jud_replace_sum_5 > 0, 1, 0),
-         firstchange3 = if_else(jud_replace_sum_3 > 0, 1, 0)) |> 
+         changelastcon5 = if_else(jud_replace_con_sum_5 > 0, 0, 1),
+         changelastcon3 = if_else(jud_replace_con_sum_3 > 0, 0, 1),
+         changelast5 = if_else(jud_replace_sum_5 > 0, 1, 0),
+         changelast3 = if_else(jud_replace_sum_3 > 0, 1, 0)) |> 
+  group_by(country) %>% 
   mutate(across(starts_with("v2x"), 
                 .fns = ~ . - lag(.),
                 .names = "lagged_{.col}")) |> 
+  ungroup() %>% 
   filter(!country %in% c("Norway", 
                          "Moldova", 
                          "Ukraine", 
@@ -81,120 +84,89 @@ ccpc_vdem %>%
 
 ## SET-UP
 
-depv = "jud_replace_cont"
-indepv = c("lagged_trust_share_linear_imp_1",
-           "ruth_populism",
-           "lagged_trust_share_linear_imp_1*ruth_populism"
-           )
-contr = c("surplus",
-          "executive",
-          "presidential",
-          "gdp_growth_small_mean_3")
-instr = c("v2juaccnt_mean_3",
-          "v2juaccnt_mean_3*ruth_populism")
-fe = "country"
+model_list_interaction <- list()
+model_list_nointeraction <- list()
+coef_names <- create_coefnames()
+
+set_basevars()
 
 df |> 
-  select(any_of(c(depv, indepv, contr, instr, fe)), year) |> 
+  select(any_of(c(depv, indepv, contr, instr, fe)), year, v2x_cspart) |> 
   na.omit() ->
   df_final
 
 summary(df_final)
 
-write_rds(df_final, "data/analysis.rds")
+write_rds(df_final, glue("data/analysis_{depv}.rds"))
 
 ## OLS MODEL ----
 
-form <- gf({depv} ~ {indepv} + {contr} + {fe})
+form <- gf({depv} ~ {indepv} + {interact} + {contr} + {fe})
 
 # ols without robust SE
 ols <- lm(form,
           data = df_final)
+# test for heteroscedasticity
+bptest(ols, studentize = FALSE)
 # robust SE with sandwich
 coeftest(ols,
          vcov = vcovCL,
-         type = "HC0")
-# clustered SE with estimatr
-ols_robust <- lm_robust(
-  form,
-  data = df_final,
-  clusters = country,
-  se_type = "stata"
-)
-# There's a clear difference between both.
-summary(ols)
-summary(ols_robust)
+         type = "HC1")
 # No correlation between predictors
 vif(ols, type = "predictor")
-# Save for Paper
-saveRDS(ols, "results/tables/ols_robust.rds")
+ols_robust <- robust_ols(form)
+summary(ols_robust)
+model_list_interaction$m1 <- ols_robust
+assign(paste("ols_robust", depv, sep = "_"), ols_robust)
+
 
 # get levels for trust data for which to calculate AME
-levels <- get_current_trust_levels()
+levels <- get_current_trust_levels("trust_share_low_linear_imp_mean_3")
 # create new data for prediction (only ruth_populism and trust vary, all other at mean)
 pred_data <- datagrid(ruth_populism = c(1, 0), 
-                      lagged_trust_share_linear_imp_1 = levels, 
+                      trust_share_low_linear_imp_mean_3 = levels, 
                       model = ols_robust)
 # calculate AME and CIs for predicted data
 meff <- marg_effects(ols_robust)
 
 # plot interaction
-meff |> 
-  ggplot(aes(x = lagged_trust_share_linear_imp_1, y = estimate)) +
-  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dashed") +
-  geom_ribbon(aes(ymin = cilower, ymax = ciupper, alpha = ci_size), fill = "darkslategrey") +
-  geom_line(aes()) +
-  geom_line() +
-  labs(x = "Trust in Judiciary",
-       y = "AME of Populism",
-       caption = "") +
-  scale_x_percent(limits = c(0, 1))  +
-  scale_alpha_manual(values = c(0.7, 0.5, 0.2))
+plot <- create_plot(meff,
+            "trust_share_low_linear_imp_mean_3")
 
-ggsave("results/graphs/ols_interaction.pdf",
+ggsave(glue("results/graphs/ols_interaction_{depv}.pdf"),
        device = cairo_pdf,
        width = 10,
        height = 6.2)
 
+saveRDS(plot, glue("results/graphs/ols_interaction_{depv}.RDS"))
+
 ### OLS BASE MODELS ----
 
 # only independent variables
-form <- gf({depv} ~ ruth_populism + lagged_trust_share_linear_imp_1)
+form <- gf({depv} ~ {indepv})
 baseols <- robust_ols(form)
 summary(baseols)
 
 # plus fixed-effects
-form <- gf({depv} ~ ruth_populism + lagged_trust_share_linear_imp_1 + {fe})
+form <- gf({depv} ~ {indepv} + {fe})
 baseols2 <- robust_ols(form)
 summary(baseols2)
 
 # plus controls
-form <- gf({depv} ~ lagged_trust_share_linear_imp_1 + ruth_populism + {contr} + {fe})
+form <- gf({depv} ~ {indepv} + {contr} + {fe})
 baseols3 <- robust_ols(form)
+model_list_nointeraction$m1 <- baseols3
 summary(baseols3)
+assign(paste("baseols3", depv, sep = "_"), baseols3)
 
 # controls, but no fixed-effects
-form <- gf({depv} ~ lagged_trust_share_linear_imp_1 + ruth_populism + {contr})
+form <- gf({depv} ~ {indepv} + {contr})
 baseols4 <- robust_ols(form)
 summary(baseols4)
 
 
 #### COMPARISON TABLE  ----
 
-# rename coefs
-coef_names <- c(
-  "ruth_populism" = "Populist",
-  "lagged_trust_share_linear_imp_1" = "Trust (lagged)",
-  "trust_hat" = "Trûst",
-  "executive" = "Executive Power",
-  "surplus" = "Surplus Seats",
-  "presidential" = "Presidential System",
-  "gdp_log_lag" = "GDP per capita (lagged, log)",
-  "gini" = "Gini",
-  "v2juncind_mean_3" = "Judicial Independence (mean of three lags)",
-  "lagged_trust_share_linear_imp_1 × ruth_populism " = "Trust (lagged) x Populist",
-  "trust_hat × ruth_populism" = "Trûst x Populist"
-)
 
 # add info on FE
 olsrows <- data.frame("Coefficients" = "Country FE",
@@ -203,79 +175,113 @@ olsrows <- data.frame("Coefficients" = "Country FE",
                       "(3)" = "Yes",
                       "(4)" = "No",
                       "(5)" = "Yes")
-attr(olsrows, "position") <- 15
+attr(olsrows, "position") <- 19
 
 # create table
-# XXX The interaction effects os getting lost right now?!
 modelsummary(list(baseols, baseols2, baseols3, baseols4, ols_robust),
              coef_rename = coef_names,
              estimate  = "{estimate}{stars}",
              statistic = c("conf.int"),
              coef_omit = c("Intercept|country"),
              add_rows = olsrows,
+             modelsummary_format_numeric_latex = "plain",
              output = "latex"
-             ) |> 
-  kable_styling() |> 
-  kable_classic_2() ->
+             ) ->
   mainmodels
 
-#unsure yet which is the best way to go - I think write Lines, I'm on that
-save_kable(mainmodels, file = "results/tables/my_table.tex")
-
-test <- as.character(mainmodels)
-writeLines(mainmodels, "results/tables/test")
-saveRDS(mainmodels, "results/tables/test.rds")
+writeLines(mainmodels, glue("results/tables/mainmodels_{depv}.tex"))
 
 ## RANDOM EFFECTS ----
 
-contr = c("executive",
-          "surplus",
-          "presidential",
-          "gdp_log_lag")
-
-form <- gf({depv} ~ {indepv} + {contr})
+form <- gf({depv} ~ {indepv} + {interact} + {contr})
 rols <- plm(form,
             data = df_final,
             index = c("country", "year"),
-            model = "random")
+            model = "random",
+            cluster = "country")
 summary(rols)
+model_list_interaction$rols <- rols
+assign(paste("rols", depv, sep = "_"), rols)
 coeftest(rols, 
          vcov = vcovHC(rols, 
-                       type="HC4", 
-                       cluster="group"))
+                       type="HC1"))
+
+# without interaction
+
+form <- gf({depv} ~ {indepv}+ {contr})
+rols_ni <- plm(form,
+            data = df_final,
+            index = c("country", "year"),
+            model = "random",
+            cluster = "country")
+summary(rols_ni)
+model_list_nointeraction$rols <- rols_ni
+assign(paste("rols_ni", depv, sep = "_"), rols_ni)
+
 
 ## DYNAMIC MODEL ----
 
-indepv = c("lagged_trust_share_linear_imp_1", 
-           "ruth_populism")
-dynamicv = c("firstchange5")
-depv = "jud_replace_cont"
-contr = c("executive",
-          "surplus",
-          "presidential",
-          "gdp_log_lag")
-fe = "country"
-
-df4 |> 
-  select(any_of(c(depv, indepv, contr, instr, fe, dynamicv)), year, jud_replace) |> 
+### DYNAMIC TRIPLE INTERACTION ----
+dynamicv = c("changelast5",
+             "changelast5*trust_share_low_linear_imp_mean_3*ruth_populism")
+df |> 
+  select(any_of(c(depv, indepv, contr, instr, fe, dynamicv)), year, v2x_cspart) |> 
   na.omit() ->
   df_final
 
 form <- gf({depv} ~ {indepv} + {dynamicv} + {contr} +  {fe})
+dols_triple <- robust_ols(form)
+summary(dols_triple)
+
+slopes(dols_triple,
+       variables = "ruth_populism",
+       newdata = datagrid(ruth_populism = c(1, 0), 
+                          trust_share_low_linear_imp_mean_3 = levels,
+                          changelast5 = c(0,1))) |> 
+  mutate(
+    cilower_95 = estimate - 1.96 * std.error,
+    ciupper_95 = estimate + 1.96 * std.error,
+    cilower_90 = estimate - 1.64 * std.error,
+    ciupper_90 = estimate + 1.64 * std.error,
+    cilower_99 = estimate - 3.58 * std.error,
+    ciupper_99 = estimate + 3.58 * std.error
+  ) |>
+  pivot_longer(
+    cols = starts_with("ci"),
+    names_to = c("ci_type", "ci_size"),
+    names_sep = "_",
+    values_to = "value"
+  ) |>
+  pivot_wider(
+    names_from = ci_type,
+    values_from = value
+  ) ->
+  meff
+
+meff %>% 
+  filter(changelast5 == 0) ->
+  meff
+create_plot(meff, 
+            "trust_share_low_linear_imp_mean_3") 
+
+ggsave(glue("results/graphs/tripleinteraction_dynamic_{depv}.pdf"),
+       device = cairo_pdf,
+       width = 7,
+       height = 5)
+
+
+### DYNAMIC NO POPULIST INTERACTION ----
+
+dynamicv = c("changelast5",
+             "changelast5*trust_share_low_linear_imp_mean_3")
+
+form <- gf({depv} ~ {indepv}+ {dynamicv} + {contr} +  {fe})
 dols <- robust_ols(form)
 summary(dols)
 
-dynamicv = c("firstchange5",
-             "firstchange5*lagged_trust_share_linear_imp_1*ruth_populism")
-form <- gf({depv} ~ {indepv} + {dynamicv} + {contr} +  {fe})
-dols <- robust_ols(form)
-summary(dols)
-
-marginaleffects(dols,
-                variables = "ruth_populism",
-                newdata = datagrid(ruth_populism = c(1, 0), 
-                                   lagged_trust_share_linear_imp_1 = levels,
-                                   firstchange5 = c(0,1))) |> 
+slopes(dols,
+       variables = "trust_share_low_linear_imp_mean_3",
+       newdata = datagrid(changelast5 = c(0,1))) |> 
   mutate(lower = estimate - 1.96 * std.error, 
          upper = estimate + 1.96 * std.error,
          lower_90 = estimate - 1.64 * std.error, 
@@ -284,262 +290,492 @@ marginaleffects(dols,
          upper_99 = estimate + 3.58 * std.error) ->
   meff
 
+theme_set(theme_bar)
+
 meff |> 
-  ggplot(aes(x = lagged_trust_share_linear_imp_1, y = estimate)) +
+  mutate(changelast5 = if_else(changelast5 == 1, "Yes", "No")) %>% 
+  ggplot(aes(x = as.factor(changelast5), 
+             y = estimate, 
+             color = as.factor(changelast5))) +
   geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
-  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.8, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = lower_99, ymax = upper_99), alpha = 0.4, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "darkslategrey") +
+  geom_pointrange(aes(ymin = lower_90, 
+                      ymax = upper_90)) +
   geom_line() +
-  facet_wrap(~firstchange5) +
+  scale_color_manual(values = c(color_dark, color_colorful)) +
   labs(x = "",
-       y = "AME of Populism",
-       caption = "") +
-  theme_minimal()
+       y = "AME of Trust",
+       caption = "",
+       color = "Court Packing or Purges in the last 5 Years") 
 
 df_final |> 
-  ggplot(aes(x=lagged_trust_share_linear_imp_1)) +
+  ggplot(aes(x=trust_share_low_linear_imp_mean_3)) +
   geom_histogram() +
-  facet_wrap(~firstchange5)
+  facet_wrap(~changelast5)
 
-## 2SLS MODEL JUDICIAL REPLACEMENT ----
+### With first change in 3 ----
 
-form_iv <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
-m_iv <- ivreg(form_iv,
-              data = df_final)
-summary(m_iv)
+contr <- c("surplus",
+            "executive",
+            "presidential",
+            "gdp_growth_small_mean_3",
+           "changelast3",
+            "regime_age",
+            "coalition")
+dynamicv = c("changelast3",
+             "changelast3*trust_share_low_linear_imp_mean_3")
 
-# first stage
-form_fs <- gf(lagged_trust_share_linear_imp_1 ~ ruth_populism + {contr} + {instr})
-form_fs_null <- gf(lagged_trust_share_linear_imp_1 ~ ruth_populism + {contr} )
-firststage <- plm(form_fs,
-                  data = df_final,
-                  index = c("country", "year"),
-                  model = "within")
-summary(firststage)
-
-firststagenull <- plm(form_fs_null,
-                      data = df_final,
-                      index = c("country", "year"),
-                      model = "within")
-
-# tests for first stage
-
-# simple F-test
-waldtest(firststage, firststagenull)
-
-# Second Stage
-df_final$trust_hat <- as.vector(fitted(firststage))
-indepv = c("trust_hat", 
-           "ruth_populism",
-           "trust_hat*ruth_populism")
-form_ss <- gf({depv} ~ {indepv}  + {contr})
-secondstage <- plm(form_ss,
-                   data = df_final,
-                   index = c("country", "year"),
-                   model = "within")
-summary(secondstage)
-
-# Tests
-# wu-hausmann
-phtest(secondstage, ols)
-
-levels_hat <- seq(
-  min(df_final$trust_hat, na.rm = TRUE),
-  max(df_final$trust_hat, na.rm = TRUE),
-  0.05
-)
-
-modelsummary(list(firststage, secondstage),
-)
-
-form_ss <- gf({depv} ~ {indepv}  + {contr} + {fe})
-secondstage <- lm(form_ss,
-                  data = df_final)
-
-marginaleffects(secondstage,
-                variables = "ruth_populism",
-                newdata = datagrid(ruth_populism = c(1, 0), 
-                                   trust_hat = levels_hat)) |> 
-  mutate(lower = estimate - 1.96 * std.error, 
-         upper = estimate + 1.96 * std.error,
-         lower_90 = estimate - 1.64 * std.error, 
-         upper_90 = estimate + 1.64 * std.error,
-         lower_99 = estimate - 3.58 * std.error, 
-         upper_99 = estimate + 3.58 * std.error) ->
-  meff
-
-meff |> 
-  ggplot(aes(x = trust_hat, y = estimate)) +
-  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
-  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.8, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = lower_99, ymax = upper_99), alpha = 0.4, fill = "darkslategrey") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "darkslategrey") +
-  geom_line() +
-  labs(x = "",
-       y = "AME of Populism",
-       caption = "") +
-  theme_minimal()
-
-# COMPARISON ----
-
-modelsummary(list("OLS" = ols, 
-                  #"Second Stage" = secondstage, 
-                  "Dynamic OLS" = dols, 
-                  "Random Effects OLS" = rols),
-             estimate  = "{estimate}{stars}",
-             statistic = c("conf.int"),
-             coef_omit = c("Intercept|country"),
-             coef_map = c(
-               "ruth_populism" = "Populist",
-               "lagged_trust_share_linear_imp_1" = "Trust (lagged)", 
-               "trust_hat" = "Trûst",
-               "executive" = "Executive Power",
-               "surplus" = "Surplus Seats",
-               "presidential" = "Presidential System",
-               "gdp_log_lag" = "GDP per capita (lagged, log)",
-               "gini" = "Gini",
-               "v2juncind_mean_3" = "Judicial Independence (mean of three lags)",
-               "lagged_trust_share_linear_imp_1 × ruth_populism" = "Trust (lagged) x Populist",
-               "trust_hat × ruth_populism" = "Trûst x Populist"
-               ),
-             output = "latex"
-             ) ->
-  modelcomparison
-modelcomparison
-saveRDS(modelcomparison, "results/tables/modelcomparison_trust.rds")
-
-# ROBUSTNESS ----
-
-## REVERSE ----
-reverseols <- lm(dplyr::lead(trust_share_linear_imp, 3) ~ jud_replace_con,
-                 data = df4)
-summary(reverseols)
-
-reverseols2 <- lm(dplyr::lead(trust_share_linear_imp, 3) ~ jud_replace_con + as.factor(country),
-              data = df4)
-summary(reverseols2)
-
-form <- gf(dplyr::lead(trust_share_linear_imp, 3) ~ jud_replace_con + {contr} + {fe})
-reverseols3 <- lm(form,
-                 data = df4)
-summary(reverseols3)
-
-form <- gf(dplyr::lead(trust_share_linear_imp, 3) ~ jud_replace_con + {contr} + {fe})
-reverseols4 <- robust_ols(form)
-summary(reverseols3)
-
-## ----
-
-form <- gf({depv} ~ lagged_trust_share_linear_imp_1*firstchange5 + {contr} + {fe})
-baseols <- lm(form,
-              data = df_final)
-summary(baseols)
-
-form <- gf({depv} ~ lagged_trust_share_linear_imp_1*firstchange5 + {fe})
-baseols <- lm(form,
-              data = df_final)
-summary(baseols)
-
-df4 |> 
-  select(any_of(c(depv, indepv, contr, instr, fe)), laterchange, year) |> 
-  na.omit() ->
-  df_final
-
-df_final |> 
-  filter(laterchange == 0) ->
-  df_final_onlyfirst
-
-form_iv <- gf({depv} ~ lagged_trust_share_linear_imp_1 + {contr} + {fe} | {contr} + {fe} + {instr})
-m_iv <- ivreg(form_iv,
-              data = df_final_onlyfirst)
-summary(m_iv)
-
-### PROBIT ----
-
-depv = "jud_replace_con"
-df4 |> 
+df |> 
   select(any_of(c(depv, indepv, contr, instr, fe)), year) |> 
   na.omit() ->
   df_final
-form <- gf({depv} ~ lagged_trust_share_linear_imp_1 + {contr} + {fe})
-probit <- glm(form,
-              data = df_final,
-              family = binomial(link = "probit"))
-summary(probit)
-vif(baseols, type = "predictor")
 
-df_final |> 
-  filter(ruth_populism == 1 & jud_replace_con == 1) |> 
-  select(country, year) |>  View()
+form <- gf({depv} ~ {indepv}+ {dynamicv} + {contr} +  {fe})
+dols3 <- robust_ols(form)
+summary(dols3)
 
-### change depv ----
+dynamicv = c("changelast3",
+             "changelast3*trust_share_low_linear_imp_mean_3*ruth_populism")
+form <- gf({depv} ~ {indepv} + {dynamicv} + {contr} +  {fe})
+dols_triple3 <- robust_ols(form)
+summary(dols_triple3)
 
-depv = "jud_replace_cont_mean"
+### DYNAMIC FILTERED ----
+# for some weird reason this yields a different output than the interaction effect
+set_basevars()
 
-df4 |> 
-  select(any_of(c(depv, indepv, contr, instr, fe))) |> 
+df |> 
+  filter(changelast5 == 0) %>% 
+  select(any_of(c(depv, indepv, contr, instr, fe)), year) |> 
   na.omit() ->
   df_final
 
-form_iv <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
-m_ivr1<- ivreg(form_iv,
-                  data = df_final)
+form <- gf({depv} ~ {indepv} + {interact}  + {contr} + {fe})
 
-### change instr lag  ----
+ols_robust_dyn <- robust_ols(form)
+summary(ols_robust_dyn)
 
-depv = "jud_replace_cont"
-instr = c("v2juaccnt_mean_5",
-          "v2jucorrdc_mean_5",
-          "v2jucorrdc_mean_5*ruth_populism",
-          "v2juaccnt_mean_5*ruth_populism")
+# get levels for trust data for which to calculate AME
+levels <- get_current_trust_levels("trust_share_low_linear_imp_mean_3")
+# create new data for prediction (only ruth_populism and trust vary, all other at mean)
+pred_data <- datagrid(ruth_populism = c(1, 0), 
+                      trust_share_low_linear_imp_mean_3 = levels, 
+                      model = ols_robust_dyn)
+# calculate AME and CIs for predicted data
+meff <- marg_effects(ols_robust_dyn)
 
-df4 |> 
-  select(any_of(c(depv, indepv, contr, instr, fe))) |> 
+# plot interaction
+create_plot(meff,
+            "trust_share_low_linear_imp_mean_3")
+
+ggsave(glue("results/graphs/ols_interaction_onlychangelast.pdf_{depv}"),
+       device = cairo_pdf,
+       width = 10,
+       height = 6.2)
+
+
+# add info on FE
+attr(olsrows, "position") <- 31
+
+# create table
+modelsummary(list("Main Model" = ols_robust, 
+                  "Interaction" = dols, 
+                  "Triple Interaction" = dols_triple, 
+                  "Interaction" = dols, 
+                  "Triple Interaction" = dols_triple3),
+             coef_rename = coef_names,
+             estimate  = "{estimate}{stars}",
+             statistic = c("conf.int"),
+             coef_omit = c("Intercept|country"),
+             add_rows = olsrows,
+             output = "latex",
+             modelsummary_format_numeric_latex = "plain"
+) |> 
+  add_header_above(c(" " = 1, "5 Years" = 3, "3 Years" = 2)) %>% 
+  sub("trust_share_low_linear_imp_mean_3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) ->
+  dynamicmodels
+
+writeLines(dynamicmodels, glue("results/tables/dynamicmodels_{depv}.tex"))
+
+### DYNAMIC JUDICIAL INDEPENDENCE ----
+
+#### Triple Interaction ----
+
+dynamicv = c("judicial_independence_mean_mean_3",
+             "judicial_independence_mean_mean_3*trust_share_low_linear_imp_mean_3*ruth_populism")
+df |> 
+  select(any_of(c(depv, indepv, contr, instr, fe, dynamicv)), year, v2x_cspart) |> 
   na.omit() ->
   df_final
 
-form_iv  <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
-m_ivr2 <- ivreg(form_iv,
-               data = df_final)
+form <- gf({depv} ~ {indepv} + {dynamicv} + {contr} +  {fe})
+dols_triple_ji <- robust_ols(form)
+summary(dols_triple_ji)
 
-### change trust imputation lag  ----
 
-depv = "jud_replace_cont"
-indepv = c("lagged_trust_share_imp_lastv_1", 
-           "ruth_populism",
-           "lagged_trust_share_imp_lastv_1*ruth_populism")
-contr = c("evnt_sum_lag3",
-          "executive",
-          "senior_length")
-instr = c("v2juaccnt_mean_3",
-          "v2jucorrdc_mean_3",
-          "v2jucorrdc_mean_3*ruth_populism",
-          "v2juaccnt_mean_3*ruth_populism")
+# create new data for prediction (only ruth_populism and trust vary, all other at mean)
+pred_data <- datagrid(ruth_populism = c(0,1),
+                      judicial_independence_mean_mean_3 = c(-2, 0, 2), 
+                      trust_share_low_linear_imp_mean_3 = levels,
+                      model = dols_triple_ji)
+# calculate AME and CIs for predicted data
+meff <- marg_effects(dols_triple_ji,
+                     "ruth_populism")
 
-df4 |> 
-  select(any_of(c(depv, indepv, contr, instr, fe))) |> 
+df_final %>% 
+  mutate(ji = case_when(
+    judicial_independence_mean_mean_3 < -1 ~ "Low", 
+    judicial_independence_mean_mean_3 > -1 & judicial_independence_mean_mean_3 < 1 ~ "Medium",
+    judicial_independence_mean_mean_3 > 1 ~ "High",
+    TRUE ~ NA
+  )) %>% 
+  ggplot() +
+  geom_density(aes(x = trust_share_low_linear_imp_mean_3,
+                     fill = ji,
+                   color = ji),
+               alpha = 0.7) +
+  scale_y_continuous(limits = c(0,8),
+                     expand = c(0,0)) +
+  scale_x_percent(limits = c(0,1),
+                     expand = c(0,0)) +
+  scale_fill_manual(values = c(color_colorful, color_dark, color_dark_verylight),
+                    labels = c("High", "Medium", "Low"),
+                    name = "Judicial Independence Last Three Years ") +
+  scale_color_manual(values = c(color_colorful, color_dark, color_dark_verylight),
+                    labels = c("High", "Medium", "Low"),
+                    name = "Judicial Independence Last Three Years ") +
+  labs(y = NULL,
+       x = "Trust")
+
+ggsave("results/graphs/density_jitrust.pdf",
+       width = 10,
+       height = 10*0.618,
+       device = cairo_pdf)
+
+meff |> 
+  filter(ci_size == 95) %>% 
+  ggplot(aes(x = trust_share_low_linear_imp_mean_3, 
+             y = estimate)) +
+  geom_hline(yintercept = 0, 
+             color = "#C95D63", 
+             linetype = "dashed") +
+  geom_ribbon(aes(ymin = cilower, 
+                  ymax = ciupper, 
+                  alpha = ci_size,
+                  fill = as.factor(judicial_independence_mean_mean_3))) +
+  geom_line(aes(group = as.factor(judicial_independence_mean_mean_3))) +
+  labs(x = "Trust in Judiciary",
+       y = "AME of Populism",
+       caption = element_blank()) +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(-7.5, 7,5),
+                     breaks = seq(-5, 7.5, by = 2.5))  +
+  scale_x_percent(expand = c(0,0),
+                     limits = c(0,1)) +
+  scale_alpha_manual(values = c(0.7, 0.5, 0.2),
+                     name = "Confidence Intervall") +
+  scale_fill_manual(values = c(color_colorful, color_dark, color_dark_verylight),
+                    labels = c("High", "Medium", "Low"),
+                    name = "Judicial Independence Last Three Years ") +
+  guides(alpha = FALSE) +
+  coord_cartesian(clip = "off") 
+
+ggsave(glue("results/graphs/dynamic_interaction_trustjipop_{depv}.pdf"),
+       device = cairo_pdf,
+       width = 10,
+       height = 6.2)
+
+#### Interaction ----
+
+dynamicv = c("judicial_independence_mean_mean_3",
+             "judicial_independence_mean_mean_3*trust_share_low_linear_imp_mean_3")
+
+form <- gf({depv} ~ {indepv}+ {dynamicv} + {contr} +  {fe})
+dols_ji <- robust_ols(form)
+summary(dols_ji)
+
+# get levels for trust data for which to calculate AME
+levelsji <- get_current_trust_levels("judicial_independence_mean_mean_3")
+# create new data for prediction (only ruth_populism and trust vary, all other at mean)
+pred_data <- datagrid(judicial_independence_mean_mean_3 = levelsji, 
+                      model = dols_ji)
+# calculate AME and CIs for predicted data
+meff <- marg_effects(dols_ji,
+                     "trust_share_low_linear_imp_mean_3")
+
+meff |> 
+  ggplot(aes(x = judicial_independence_mean_mean_3, 
+             y = estimate)) +
+  geom_hline(yintercept = 0, 
+             color = "#C95D63", 
+             linetype = "dashed") +
+  geom_ribbon(aes(ymin = cilower, 
+                  ymax = ciupper, 
+                  alpha = ci_size),
+              fill = color_dark) +
+  geom_line(aes()) +
+  geom_line() +
+  labs(x = "Judicial Independence in Years Before",
+       y = "AME of Trust",
+       caption = element_blank()) +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(-10, 8.5),
+                     breaks = seq(-6, 8, by = 2))  +
+  scale_x_continuous(expand = c(0,0),
+                     limits = c(-3,3)) +
+  scale_alpha_manual(values = c(0.7, 0.5, 0.2),
+                     name = "Confidence Intervall") +
+  coord_cartesian(clip = "off") 
+
+ggsave(glue("results/graphs/dynamic_interaction_trustji_{depv}.pdf"),
+       device = cairo_pdf,
+       width = 10,
+       height = 6.2)
+
+olsrows_4 <- data.frame("Coefficients" = "Country FE",
+                      "(1)" = "Yes",
+                      "(2)" = "Yes",
+                      "(3)" = "Yes")
+attr(olsrows_4, "position") <- 27
+
+# create table
+modelsummary(list("Main Model" = ols_robust, 
+                  "Interaction" = dols_ji, 
+                  "Triple Interaction" = dols_triple_ji),
+             coef_rename = coef_names,
+             estimate  = "{estimate}{stars}",
+             statistic = c("conf.int"),
+             coef_omit = c("Intercept|country"),
+             add_rows = olsrows_4,
+             output = "latex",
+             modelsummary_format_numeric_latex = "plain"
+) %>% 
+  sub("trust_share_low_linear_imp_mean_3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) ->
+  dynamicmodels_ji
+
+writeLines(dynamicmodels_ji, glue("results/tables/dynamicmodels_ji_{depv}.tex"))
+
+## CHANGES IN INDEPENDENT VARIABLES  ----
+
+set_basevars()
+
+### MEAN OF 3 ---
+
+indepv = c("lagged_trust_share_low_linear_imp_1",
+           "ruth_populism")
+interact = c(
+  "lagged_trust_share_low_linear_imp_1*ruth_populism"
+)
+
+df |> 
+  select(any_of(c(depv, indepv, contr, instr, fe)), year, v2x_cspart) |> 
   na.omit() ->
   df_final
 
-form_iv  <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
-m_ivr3 <- ivreg(form_iv,
-                data = df_final)
+
+# Main 
+form <- gf({depv} ~ {indepv} + {interact} + {contr} + {fe})
+model_list_interaction$ols_robust_mean3 <- robust_ols(form)
+# without Interaction
+form <- gf({depv} ~ {indepv} + {contr} + {fe})
+model_list_nointeraction$ols_robust_mean3_w <- robust_ols(form)
 
 
-indepv = c("lagged_trust_share_1", 
-           "ruth_populism",
-           "lagged_trust_share_1*ruth_populism")
+### MEAN OF 5 ----
 
-df4 |> 
-  select(any_of(c(depv, indepv, contr, instr, fe))) |> 
+indepv = c("trust_share_low_linear_imp_mean_5",
+           "ruth_populism"
+)
+interact = c("trust_share_low_linear_imp_mean_5*ruth_populism")
+
+
+df |> 
+  select(any_of(c(depv, indepv, contr, instr, fe)), year, v2x_cspart) |> 
   na.omit() ->
   df_final
 
-form_iv  <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
-m_ivr4 <- ivreg(form_iv,
-                data = df_final)
+# Main 
+form <- gf({depv} ~ {indepv} + {interact} + {contr} + {fe})
+model_list_interaction$ols_robust_mean5 <- robust_ols(form)
+# without Interaction
+form <- gf({depv} ~ {indepv} + {contr} + {fe})
+model_list_nointeraction$ols_robust_mean5_w <- robust_ols(form)
+
+### NO IMPUTATION ----
+
+indepv = c("trust_share_low_mean_3",
+           "ruth_populism"
+)
+interact = c("trust_share_low_mean_3*ruth_populism")
+
+df |> 
+  select(any_of(c(depv, indepv, contr, instr, fe)), year, v2x_cspart) |> 
+  na.omit() ->
+  df_final
+
+# Main 
+form <- gf({depv} ~ {indepv} + {interact} + {contr} + {fe})
+model_list_interaction$ols_robust_noimp <- robust_ols(form)
+# without Interaction
+form <- gf({depv} ~ {indepv} + {contr} + {fe})
+model_list_nointeraction$ols_robust_noimp_w <- robust_ols(form)
+
+### CLOSEST IMPUTATION ----
+
+indepv = c("trust_share_low_imp_lastv_mean_3",
+           "ruth_populism")
+interact = c(
+           "trust_share_low_imp_lastv_mean_3*ruth_populism"
+)
+
+df |> 
+  select(any_of(c(depv, indepv, contr, instr, fe)), year, v2x_cspart) |> 
+  na.omit() ->
+  df_final
+
+# Main 
+form <- gf({depv} ~ {indepv} + {interact} + {contr} + {fe})
+model_list_interaction$ols_robust_closestimp <- robust_ols(form)
+form <- gf({depv} ~ {indepv} + {contr} + {fe})
+model_list_nointeraction$ols_robust_closestimp_w <- robust_ols(form)
+
+### HIGH TRUST ----
+
+indepv = c("trust_share_high_linear_imp_mean_3",
+           "ruth_populism")
+interact = c(
+  "trust_share_high_linear_imp_mean_3*ruth_populism"
+)
+
+df_final <- select_vars()
+
+# Main 
+form <- gf({depv} ~ {indepv} + {interact} + {contr} + {fe})
+model_list_interaction$ols_robust_high <- robust_ols(form)
+form <- gf({depv} ~ {indepv} + {contr} + {fe})
+model_list_nointeraction$ols_robust_high_w <- robust_ols(form)
 
 
-modelsummary(list(m_ivtest, m_ivr1, m_ivr2, m_ivr3, m_ivr4))
-                
+### Tables ----
+# add info on FE
+modelsummary(list("Trust High" = model_list_interaction$ols_robust_high, 
+                  "No Imputation" = model_list_interaction$ols_robust_noimp, 
+                  "Closest Imputation" = model_list_interaction$ols_robust_closestimp, 
+                  "Linear Imputation" = model_list_interaction$ols_robust_mean3, 
+                  "Linear Imputation"=model_list_interaction$ols_robust_mean5
+                  ),
+             coef_rename = coef_names,
+             estimate  = "{estimate}{stars}",
+             statistic = c("conf.int"),
+             coef_omit = c("Intercept|country"),
+             add_rows = olsrows,
+             output = "latex",
+             modelsummary_format_numeric_latex = "plain"
+) %>% 
+  gsub("trust_share_low_linear_imp_mean_3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) ->
+  models_indepchange
+
+writeLines(models_indepchange, glue("results/tables/models_indepchange_{depv}.tex"))
+
+attr(olsrows, "position") <- 25
+
+modelsummary(list("Trust High" = model_list_nointeraction$ols_robust_high, 
+                  "No Imputation" = model_list_nointeraction$ols_robust_noimp_w, 
+                  "Closest Imputation" = model_list_nointeraction$ols_robust_closestimp_w, 
+                  "Linear Imputation" = model_list_nointeraction$ols_robust_mean3_w, 
+                  "Linear Imputation"=model_list_nointeraction$ols_robust_mean5_w),
+             coef_rename = coef_names,
+             estimate  = "{estimate}{stars}",
+             statistic = c("conf.int"),
+             coef_omit = c("Intercept|country"),
+             add_rows = olsrows,
+             output = "latex"
+) |> 
+  kable_styling() |> 
+  kable_classic_2() ->
+  models_indepchange2
+
+writeLines(models_indepchange2, glue("results/tables/models_indepchange_w_{depv}.tex"))
+
+## Control Change ----
+
+set_basevars()
+contr[contr=="gdp_growth_small_mean_3"]="gdp_growth_small_mean_5"
+
+df_final <- select_vars()
+form_main <- gf({depv} ~ {indepv} + {interact} + {contr} + {fe})
+form_ni <- gf({depv} ~ {indepv} + {contr} + {fe})
+
+# ols without robust SE
+model_list_interaction$ols_c11 <- robust_ols(form_main)
+model_list_nointeraction$ols_c21 <- robust_ols(form_ni)
+
+contr[contr=="gdp_growth_small_mean_5"]="gdp_growth_small_mean_3"
+contr[contr=="judicial_independence_mean_mean_3"]="judicial_independence_mean_mean_5"
+
+# ols without robust SE
+model_list_interaction$ols_c12 <- robust_ols(form_main)
+model_list_nointeraction$ols_c22 <- robust_ols(form_ni)
+
+contr[contr=="judicial_independence_mean_mean_5"]="judicial_independence_min_mean_3"
+
+# ols without robust SE
+model_list_interaction$ols_c13 <- robust_ols(form_main)
+model_list_nointeraction$ols_c23 <- robust_ols(form_ni)
+
+contr[contr=="judicial_independence_min_mean_5"]="judicial_independence_max_mean_3"
+
+# ols without robust SE
+model_list_interaction$ols_c14 <- robust_ols(form_main)
+model_list_nointeraction$ols_c24 <- robust_ols(form_ni)
+
+coefs_int <- map_dfr(model_list_interaction,
+        ~clean_coefs(.))
+
+theme_set(theme_base)
+coefs_int %>% 
+  filter(variable != "Populism" & variable != "Trust") %>% 
+  ggplot(aes(x = coef,
+             fill = as.factor(sig))) +
+  geom_histogram(binwidth = 0.05,
+                 alpha = 0.8) +
+  facet_wrap(~variable, ncol = 1) +
+  labs(fill = "Signficant on 95%-Level",
+       y = element_blank(),
+       x = "Estimate") +
+  scale_y_continuous(breaks = c(0, 5,10),
+                     expand = c(0,0)) +
+  scale_x_continuous(limits = c(-5, 5),
+                     expand = c(0,0)) +
+  scale_fill_manual(values = c(color_dark, color_colorful))
+
+ggsave(glue("results/graphs/coefficients_{depv}.pdf"),
+       device = cairo_pdf,
+       width = 10,
+       height = 15)
+
+coefs <- map_dfr(model_list_nointeraction,
+                 ~clean_coefs(.))
+
+coefs %>% 
+  ggplot(aes(x = coef,
+             fill = as.factor(sig))) +
+  geom_histogram(binwidth = 0.05,
+                 alpha = 0.8) +
+  facet_wrap(~variable, ncol = 1) +
+  labs(fill = "Signficant on 95%-Level",
+       y = element_blank(),
+       x = "Estimate") +
+  scale_y_continuous(breaks = c(0, 5,10),
+                     expand = c(0,0)) +
+  scale_x_continuous(limits = c(-1, 2),
+                     expand = c(0,0)) +
+  scale_fill_manual(values = c(color_dark, color_colorful))
+
+coefs <- map_dfr(model_list_nointeraction,
+                 ~clean_coefs(.))
+
+ggsave(glue("results/graphs/coefficients_w_{depv}.pdf"),
+       device = cairo_pdf,
+       width = 10,
+       height = 15)
+

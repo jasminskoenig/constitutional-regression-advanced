@@ -30,7 +30,7 @@ vdem2 %>%
          v2juaccnt, v2jucorrdc, v2juhcind, v2juncind, v2juhccomp,
          v2jucomp, v2jureview, v2x_regime, v2xnp_pres, v2reginfo,
          v2exrescon, v2jucomp, v2juhccomp, v2juhcind, v2x_jucon,
-         v3eldirepr, v3elagepr) |> 
+         v3eldirepr, v3elagepr, v2jupoatck, v2juncind) |> 
   mutate(country_name = if_else(country_name == "Czechia", "Czech Republic", country_name)) ->
   vdem2
 
@@ -42,15 +42,17 @@ vdem2 |>
          jud_purg = if_else(v2jupurge_ord < 2.5, 1, 0),
          jud_purg_con = if_else(v2jupurge_ord < 1.5, 1, 0),
          jud_ref = if_else(v2jureform_ord < 0.5, 1, 0),
+         judicial_independence_min = if_else(v2juhcind < v2juncind, v2juhcind, v2juncind),
+         judicial_independence_max = if_else(v2juhcind > v2juncind, v2juhcind, v2juncind),
+         judicial_independence_mean = (v2juhcind + v2juncind) / 2,
          # this doesnt work yet
          rev_remov = if_else(v2jureview == 0 & lag(v2jureview) == 1, 1, 0),
          jud_reg = if_else(jud_pack + jud_atck + jud_purg + jud_ref > 0, 1, 0),
          jud_replace = if_else(jud_pack + jud_purg > 0, 1, 0),
          jud_replace_con = if_else(jud_pack_con + jud_purg_con > 0, 1, 0),
-         jud_replace_cont = if_else(v2jupurge < v2jupack, v2jupurge, v2jupack),
-         jud_replace_cont_mean = (v2jupurge + v2jupack)/2,
-         jud_replace_cont = jud_replace_cont*-1,
-         jud_replace_cont_mean = jud_replace_cont_mean*-1,
+         jud_replace_cont = if_else(v2jupurge < v2jupack, v2jupurge*-1, v2jupack*-1),
+         jud_replace_cont_mean = ((v2jupurge + v2jupack)/2)*-1,
+         v2jupoatck = v2jupoatck*-1,
          regime_time = str_extract(v2reginfo, "\\(\\d{2}\\/\\d{2}\\/\\d{4}"),
          regime_start = as.numeric(str_extract(regime_time, "\\d{4}")),
          regime_age = year - regime_start + 1,
@@ -99,10 +101,12 @@ ruth |>
 
 write_csv(ruth_handcoding, "data/ruth_handcoding.csv")
 
-ruth_add <- read_excel("data/ruth_handcoding_lr.xlsx") 
+
+ruth_join <- read_excel("data/ruth_handcoding_lr.xlsx") 
+ruth_add <- read_excel("data/ruth_addition_final.xlsx") 
 
 ruth |>  
-  left_join(ruth_add, 
+  left_join(ruth_join, 
           by = c("country_name",
                  "year")) |> 
   mutate(populism_lr = case_when(
@@ -118,7 +122,8 @@ ruth_smaller <- ruth |>
          "ruth_populism" = "populism",
          "ruth_extremism" = "extremism",
          "ruth_populism_lr" = "populism_lr",
-         year) 
+         year) %>% 
+  bind_rows(ruth_add)
 
 joined_vdata |> 
   left_join(ruth_smaller, by = c("country_name" = "country",
@@ -167,27 +172,32 @@ joined_vdata |>
 
 # Add Barometer Data on Trust in Judiciary ----
 
-eurobarometer <- readRDS("C:/Users/Jasmin/OneDrive - Universität Hamburg/Desktop/Dissertation/barometer/data/eurobarometer_complete.rds")
-latinobarometer <- readRDS("C:/Users/Jasmin/OneDrive - Universität Hamburg/Desktop/Dissertation/barometer/data/latinobarometer_original.rds")
+eurobarometer <- readRDS("../../barometer/data/eurobarometer_complete.rds")
+latinobarometer <- readRDS("../../barometer/data/latinobarometer_binary.rds")
 
 eurobarometer |> 
   group_by(country, year) |> 
   mutate(n = n(), 
-         mean = mean(trust_judiciary, na.rm = TRUE)) |> 
+         mean = mean(trust_judiciary, na.rm = TRUE),
+         trust_judiciary2 = trust_judiciary) |> 
   group_by(country, year, trust_judiciary, mean) |> 
   reframe(share = n()/n) |> 
+  rename(mean_low = mean,
+         share_low = share) %>% 
+  mutate(share_high = share_low,
+         mean_high = mean_low) %>% 
   distinct() ->
   eurobarometer_shares
 
-latinobarometer |> 
-  filter(country != "Spain") |> 
-  group_by(country, year) |> 
-  mutate(n = n(), 
-         mean = mean(trust_judiciary, na.rm = TRUE)) |> 
-  group_by(country, year, trust_judiciary, mean) |> 
-  reframe(share = n()/n) |> 
-  distinct() ->
-  latinobarometer_shares
+latinobarometer_shares <- calc_latinoshares(trust_judiciary) %>% 
+  full_join(calc_latinoshares(trust_judiciary2) %>% 
+              mutate(trust_judiciary = trust_judiciary2), 
+            by = c("country", "year", "trust_judiciary")) %>% 
+  rename(mean_low = mean.x,
+         mean_high = mean.y,
+         share_low = share.x,
+         share_high = share.y) %>% 
+  select(-trust_judiciary2)
 
 barometer <- rbind(
   latinobarometer_shares, 
@@ -198,15 +208,20 @@ barometer <- rbind(
 barometer |> 
   filter(trust_judiciary == 1) |> 
   select(-trust_judiciary) |> 
-  rename("trust_share" = "share",
-         "trust_mean" = "mean") ->
+  rename("trust_share_low" = "share_low",
+         "trust_mean_low" = "mean_low",
+         "trust_share_high" = "share_high",
+         "trust_mean_high" = "mean_high") ->
   barometer_forbind
 
 barometer_forbind |> 
   group_by(country) |> 
-  mutate(diff = if_else(
-    year - lag(year) > 1, trust_share - lag(trust_share), NA
-  )) 
+  mutate(diff_low = if_else(
+    year - dplyr::lag(year) > 1, trust_share_low - dplyr::lag(trust_share_low), NA
+  ),
+  diff_high = if_else(
+    year - dplyr::lag(year) > 1, trust_share_high - dplyr::lag(trust_share_high), NA
+  )) %>%  View()
 
 joined_vdata |> 
   left_join(barometer_forbind, by = join_by(country_name == country,
@@ -217,8 +232,10 @@ joined_vdata |>
 
 # fill in vparty columns & barometer for the additional observations in vdem years
 joined_vdata %>%
-  mutate(trust_share_imp_lastv = trust_share,
-         trust_mean_imp_lastv = trust_mean) |> 
+  mutate(trust_share_high_imp_lastv = trust_share_high,
+         trust_mean_high_imp_lastv = trust_mean_high,
+         trust_share_low_imp_lastv = trust_share_low,
+         trust_mean_low_imp_lastv = trust_mean_low) |> 
   group_by(country_name) %>% 
   fill(gov_popul_mean,
        gov_popul_weighted,
@@ -242,8 +259,10 @@ joined_vdata %>%
        interval_jun,
        interval_gov,
        gov_galtan_weighted, 
-       trust_mean_imp_lastv,
-       trust_share_imp_lastv) %>% 
+       trust_mean_high_imp_lastv,
+       trust_share_high_imp_lastv,
+       trust_mean_low_imp_lastv,
+       trust_share_low_imp_lastv) %>% 
   ungroup() |> 
   mutate(surplus = if_else(gov_seatshare - 50 < 0, 0, 1),
          gov_rile_left = as.factor(if_else(gov_rile_weighted < -8 , 1, 0)),
@@ -511,7 +530,8 @@ ccpc_vdem |>
   all_countries
 
 # function for imputation returns dataset with additional columns for multiple imputations
-ccpc_vdem <- map_dfr(all_countries,  ~get_linear_imputation(.x, "trust_share"))
+ccpc_vdem <- map_dfr(all_countries,  ~get_linear_imputation(.x, "trust_share_high"))
+ccpc_vdem <- map_dfr(all_countries,  ~get_linear_imputation(.x, "trust_share_low"))
 ccpc_vdem <- map_dfr(all_countries,  ~get_linear_imputation(.x, "gdp"))
 ccpc_vdem <- map_dfr(all_countries,  ~get_linear_imputation(.x, "gdp_growth_small"))
 
@@ -533,14 +553,29 @@ jud_replace_lag3 <- calculate_lagsummary("jud_replace", 5, func = "sum", by_gove
 jud_replace_lag5 <- calculate_lagsummary("jud_replace", 3, func = "sum", by_government = FALSE)
 
 # For others we need the mean
-trust_mean_5 <- calculate_lagsummary("trust_share", 5, func = "mean", by_government = FALSE) 
-trust_mean_3 <- calculate_lagsummary("trust_share", 3, func = "mean", by_government = FALSE) |> 
+trust_mean_high_5 <- calculate_lagsummary("trust_share_high", 5, func = "mean", by_government = FALSE) 
+trust_mean_high_3 <- calculate_lagsummary("trust_share_high", 3, func = "mean", by_government = FALSE) |> 
   select(-starts_with("lagged"))
-trustlinearimp_mean_5 <- calculate_lagsummary("trust_share_linear_imp", 5, func = "mean", by_government = FALSE) 
-trustlinearimp_mean_3 <- calculate_lagsummary("trust_share_linear_imp", 3, func = "mean", by_government = FALSE) |> 
+trust_mean_low_5 <- calculate_lagsummary("trust_share_low", 5, func = "mean", by_government = FALSE) 
+trust_mean_low_3 <- calculate_lagsummary("trust_share_low", 3, func = "mean", by_government = FALSE) |> 
   select(-starts_with("lagged"))
-trustlastvimp_mean_5 <- calculate_lagsummary("trust_share_imp_lastv", 5, func = "mean", by_government = FALSE) 
-trustlastvimp_mean_3 <- calculate_lagsummary("trust_share_imp_lastv", 3, func = "mean", by_government = FALSE) |> 
+trustlinearimp_mean_high_5 <- calculate_lagsummary("trust_share_high_linear_imp", 5, func = "mean", by_government = FALSE) 
+trustlinearimp_mean_high_3 <- calculate_lagsummary("trust_share_high_linear_imp", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
+trustlastvimp_mean_high_5 <- calculate_lagsummary("trust_share_high_imp_lastv", 5, func = "mean", by_government = FALSE) 
+trustlastvimp_mean_high_3 <- calculate_lagsummary("trust_share_high_imp_lastv", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
+trust_mean_high_5 <- calculate_lagsummary("trust_share_high", 5, func = "mean", by_government = FALSE) 
+trust_mean_high_3 <- calculate_lagsummary("trust_share_high", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
+trust_mean_low_5 <- calculate_lagsummary("trust_share_low", 5, func = "mean", by_government = FALSE) 
+trust_mean_low_3 <- calculate_lagsummary("trust_share_low", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
+trustlinearimp_mean_low_5 <- calculate_lagsummary("trust_share_low_linear_imp", 5, func = "mean", by_government = FALSE) 
+trustlinearimp_mean_low_3 <- calculate_lagsummary("trust_share_low_linear_imp", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
+trustlastvimp_mean_low_5 <- calculate_lagsummary("trust_share_low_imp_lastv", 5, func = "mean", by_government = FALSE) 
+trustlastvimp_mean_low_3 <- calculate_lagsummary("trust_share_low_imp_lastv", 3, func = "mean", by_government = FALSE) |> 
   select(-starts_with("lagged"))
 judacc_mean_5 <- calculate_lagsummary("v2juaccnt", 5, func = "mean", by_government = FALSE) 
 judacc_mean_3 <- calculate_lagsummary("v2juaccnt", 3, func = "mean", by_government = FALSE) |> 
@@ -560,16 +595,33 @@ gdp_growth_mean_3 <- calculate_lagsummary("gdp_growth_small", 3, func = "mean", 
 gdp_log_linear_imp_mean_5 <- calculate_lagsummary("gdp_linearimp_log", 5, func = "mean", by_government = FALSE) 
 gdp_log_linear_imp_mean_3 <- calculate_lagsummary("gdp_linearimp_log", 3, func = "mean", by_government = FALSE) |> 
   select(-starts_with("lagged"))
-
+jud_replace_cont_mean_5 <- calculate_lagsummary("jud_replace_cont", 5, func = "mean", by_government = FALSE) 
+jud_replace_cont_mean_3 <- calculate_lagsummary("jud_replace_cont", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
+jud_ind_mean_mean5 <- calculate_lagsummary("judicial_independence_mean", 5, func = "mean", by_government = FALSE) 
+jud_ind_mean_mean3 <- calculate_lagsummary("judicial_independence_mean", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
+jud_ind_min_mean5 <- calculate_lagsummary("judicial_independence_min", 5, func = "mean", by_government = FALSE) 
+jud_ind_min_mean3 <- calculate_lagsummary("judicial_independence_min", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
+jud_ind_max_mean5 <- calculate_lagsummary("judicial_independence_max", 5, func = "mean", by_government = FALSE) 
+jud_ind_max_mean3 <- calculate_lagsummary("judicial_independence_max", 3, func = "mean", by_government = FALSE) |> 
+  select(-starts_with("lagged"))
 
 
 purrr::reduce(list(ccpc_vdem,
-                   trust_mean_3, 
-                   trust_mean_5, 
-                   trustlastvimp_mean_3,
-                   trustlastvimp_mean_5,
-                   trustlinearimp_mean_5,
-                   trustlinearimp_mean_3,
+                   trust_mean_high_3, 
+                   trust_mean_high_5, 
+                   trustlastvimp_mean_high_3,
+                   trustlastvimp_mean_high_5,
+                   trustlinearimp_mean_high_5,
+                   trustlinearimp_mean_high_3,
+                   trust_mean_low_3, 
+                   trust_mean_low_5, 
+                   trustlastvimp_mean_low_3,
+                   trustlastvimp_mean_low_5,
+                   trustlinearimp_mean_low_5,
+                   trustlinearimp_mean_low_3,
                    judacc_mean_5, 
                    judacc_mean_3,
                    judind_mean_5,
@@ -588,7 +640,15 @@ purrr::reduce(list(ccpc_vdem,
                    jud_replace_con_lag5,
                    evnt_sum_lag3,
                    evnt_sum_lag5,
-                   evnt_sum_lag10
+                   evnt_sum_lag10,
+                   jud_replace_cont_mean_5,
+                   jud_replace_cont_mean_3,
+                   jud_ind_mean_mean5,
+                   jud_ind_mean_mean3,
+                   jud_ind_min_mean5,
+                   jud_ind_min_mean3,
+                   jud_ind_max_mean5,
+                   jud_ind_max_mean3
                    ), 
               dplyr::left_join, 
               by = c("country", "year")) ->
@@ -651,3 +711,4 @@ ccpc_vdem |>
 saveRDS(ccpc_vdem_eu_la, "data/ccpc_vdem_eu_la.rds")
 
 beep()
+

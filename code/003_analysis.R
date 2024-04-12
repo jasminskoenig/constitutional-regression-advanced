@@ -51,6 +51,8 @@ ccpc_vdem %>%
 
 # DISSERTATION MODELS ----
 
+# data 
+
 plmdata <- pdata.frame(
   df4,
   index = c(
@@ -58,6 +60,16 @@ plmdata <- pdata.frame(
     "year"
   )
 )
+
+# set coefficient names for tables 
+
+coef_names <- c(
+  "populismscore" = "Populism Score",
+  "evnt" = "Constitutional Change",
+  "moderator" = "Left-Wing",
+  "surplus" = "Surplus Seats"
+)
+
 
 ## LEFT-WING & WEIGHTED ----
 
@@ -113,7 +125,9 @@ summary(mpa)
 
 meff_mpa <- calc_ame(mpa)
 
-plot_mpa <- plot_ame(meff_mpa, mpa)
+plot_mpa <- plot_ame(meff_mpa, 
+                     mpa, 
+                     add_histogram = TRUE)
 plot_mpa
 
 ### EGAL ----
@@ -151,29 +165,24 @@ plot_mcs
 
 ### DELIB----
 
-mdds <- reg_dem(
-  plmdata$v2x_delibdem,
-  1,
-  plmdata$gov_popul_weighted,
-  plmdata$gov_left
-)
+# not in paper
 
-mdd <- mdds$`Interaction and Controls`
-summary(mdd)
-
-meff_mdd <- calc_ame(mdd)
-
-plot_mdd <- plot_ame(meff_mdd, mdd)
-plot_mdd
+# mdds <- reg_dem(
+#   plmdata$v2x_delibdem,
+#   1,
+#   plmdata$gov_popul_weighted,
+#   plmdata$gov_left
+# )
+# 
+# mdd <- mdds$`Interaction and Controls`
+# summary(mdd)
+# 
+# meff_mdd <- calc_ame(mdd)
+# 
+# plot_mdd <- plot_ame(meff_mdd, mdd)
+# plot_mdd
 
 ### TABLE ----
-
-coef_names <- c(
-  "populismscore" = "Populism Score",
-  "evnt" = "Constitutional Change",
-  "moderator" = "Left-Wing",
-  "surplus" = "Surplus Seats"
-)
 
 rows <- data.frame(
   "Coefficients" = "Country FE",
@@ -186,7 +195,8 @@ rows <- data.frame(
 
 mainmodellist <- list(mld, mpo, mpa, med, mcs)
 
-table_mainmodels <- create_regressiontable(mainmodellist,
+table_mainmodels <- create_regressiontable(
+  mainmodellist,
   add_row = TRUE,
   row_position = 17,
   row_data = rows,
@@ -230,6 +240,68 @@ ggsave("results/graphs/change_effect.pdf",
        width = 7,
        height = 10)
 
+### PLOT APPENDIX ----
+
+plot_mpa +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank()) ->
+  plot4
+
+plot_mcs +
+  labs(y = element_blank()) +
+  theme(axis.title.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_blank()) ->
+  plot5
+
+plot4 + plot5 +  plot_layout(ncol = 1,
+                             nrow = 3,
+                             heights = c(0.3,1,1),
+                             guides = 'collect')
+
+ggsave("results/graphs/change_effect_appendix.pdf",
+       device = cairo_pdf,
+       width = 6,
+       height = 8)
+
+### CASE TABLE ----
+
+df4 |> 
+  filter(e_regiongeo %in% (1:4)) |> 
+  distinct(country) |> 
+  pull(country) ->
+  european_countries
+
+mld$model |> 
+  filter(evnt == 1 & populismscore > 0.5) |> 
+  rownames_to_column() |>
+  separate(rowname, 
+           into = c("country", "year"),
+           sep = "-") |> 
+  select(country, year) |> 
+  group_by(country) |> 
+  summarise(across(everything(), str_c, collapse = ", ")) |> 
+  mutate(n = str_count(year, ",") + 1,
+         Continent = if_else(country %in% european_countries, "Europe", "Latin America")) |> 
+  as.data.frame() |> 
+  select(Continent, country, year, n) |> 
+  gt(groupname_col = "Continent") |> 
+  cols_label(
+    country = md("**Country**"),
+    year = md("**Years**"),
+    n = md("**Const. Changes**")
+  ) |> 
+  summary_rows(
+    columns = n,
+    fns =  list(label = "Total", fn = "sum"),
+    side = "bottom"
+  ) |>
+  gt::as_latex() ->
+  populist_changes
+
+writeLines(populist_changes, "results/tables/populistchanges.tex")
+
 ### JACKKNIFE COUNTRIES ----
 
 demtypes <- create_names()
@@ -240,21 +312,63 @@ jackknife_plots <- map(democracytypes, ~ plot_jackknife(.,
                                         "gov_popul_weighted",
                                         "gov_left"))
 
-jackknife_plots[[1]] + jackknife_plots[[2]] + jackknife_plots[[3]] + 
+jackknife_plots[[1]] + jackknife_plots[[2]] + jackknife_plots[[4]] + 
   plot_layout(guides = "collect") ->
   jackknife_appendix
 
+ggsave("results/graphs/jackknife_plots.pdf",
+       device = cairo_pdf,
+       width = 10,
+       height = 7)
+
 ### JACKKNIFE LAGS ----
 
-jackknife_lags <- map_dfr(democracytypes, ~ reg_dem_jackknifelag(.,
+jackknife_leads <- map_dfr(democracytypes, ~ reg_dem_jackknifelead(.,
                                      1,
                                      "gov_popul_weighted",
                                      "gov_left")) 
 
+names <- create_names()
 
-leads <- c(1, 2, 3, 4)
+jackknife_leads |> 
+  rename("conf_low" = 3,
+         "conf_high" = 4) |> 
+  mutate(across(c(conf_low, conf_high, coefjack), ~ round(., 2)),
+         ci = paste0("[", conf_low, ", ", conf_high, "]"),
+         Coefficient = as.character(coefjack)) |> 
+  rename("Lead" = "country") |>
+  select(-democracytype, -conf_low, -conf_high, -coefjack) |> 
+  pivot_longer(cols = c(Coefficient, ci),
+               names_to = "type",
+               values_to = "value") |> 
+  pivot_wider(names_from = "Lead",
+              values_from = "value") |> 
+  mutate(type = "") |> 
+  select(name, type, `1`, `2`, `3`, `4`) |> 
+  gt(groupname_col = 'name') |> 
+  cols_align(
+    align = 'center', 
+    columns = where(is.character)
+  ) |> 
+  tab_spanner(
+    label = md('**Lead**'),
+    columns = 3:6
+  ) |> 
+  cols_label(
+    type = md("**Dependent Variable**")
+  ) |> 
+  as_latex() ->
+  table_leads
+
+table_leads_final <- paste("\\begin{table}[H]",
+                      table_leads,
+                      "\\end{table}")
+
+writeLines(table_leads_final, "results/tables/constitutionalchange_leads.tex")
 
 tables_leads <- map(democracytypes, ~ create_regressiontable_leads(.x))
+
+map2(tables_leads, names$long, ~ writeLines(.x, paste0("results/tables/constitutionalchange_lead_", .y, ".tex")))
 
 ## DEMOCRATIC QUALITY AHEAD & WEIGHTED ----
 
@@ -264,9 +378,11 @@ models_lagged <- map(democracytypes, ~reg_main(plmdata[[.]],
                                                lag(plmdata[[.]], 2)))
 
 coef_names <- c(
-  "populismscore" = "Populism Score",
-  "evnt" = "Constitutional Change",
-  "moderator" = "Lagged Democracy Score",
+  "populismscore" = "Populism",
+  "evnt" = "Const. Change",
+  
+## XXX still need a solution here!
+  "moderator" = "Dem. Score (mean lag 1:3)",
   "surplus" = "Surplus Seats"
 )
 
@@ -286,13 +402,22 @@ models_ruth <- map(democracytypes, ~reg_main(plmdata[[.]],
                                                1,
                                                plmdata$ruth_populism_lr))
 
+coef_names <- c(
+  "populismscoreLeft-wing Populist" = "Left-wing Populist",
+  "populismscoreRight-wing Populist" = "Right-wing Populist",
+  "evnt" = "Constitutional Change",
+  "moderator" = "Lagged Democracy Score",
+  "surplus" = "Surplus Seats"
+)
+
 table_ruthmodels <- create_regressiontable(models_ruth,
                                               add_row = TRUE,
                                               row_position = 17,
-                                              row_data = rows
+                                              row_data = rows,
+                                           latex = TRUE
 )
 
-table_ruthmodels
+writeLines(table_ruthmodels, "results/tables/constitutionalchange_ruth.tex")
 
 ### END MAIN MODELS ###
 

@@ -464,3 +464,261 @@ predictions(m_iv_nop, newdata = pred_data_nop) |>
   geom_line() +
   geom_ribbon(alpha = 0.2, color = NA) +
   labs(title = "Non-Populist")
+
+# Backup stuff
+
+
+## REVERSE ----
+
+reverseols <- plm(lead(trust_share_low_linear_imp_mean_3, 3) ~ jud_replace_cont,
+                  data = df)
+summary(reverseols)
+
+reverseols2 <- plm(lead(trust_share_low_linear_imp_mean_3, 3) ~ jud_replace_cont + as.factor(country),
+                   data = df)
+summary(reverseols2)
+
+form <- gf(dplyr::lead(trust_share_low_linear_imp_mean_3, 3) ~ jud_replace_cont + {contr} + {fe})
+reverseols3 <- plm(form,
+                   data = df)
+summary(reverseols3)
+
+
+## 2SLS MODEL JUDICIAL REPLACEMENT ----
+
+form_iv <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
+m_iv <- ivreg(form_iv,
+              data = df_final)
+summary(m_iv)
+
+# first stage
+form_fs <- gf(trust_share_low_linear_imp_mean_3 ~ ruth_populism + {contr} + {instr})
+form_fs_null <- gf(trust_share_low_linear_imp_mean_3 ~ ruth_populism + {contr} )
+firststage <- plm(form_fs,
+                  data = df_final,
+                  index = c("country", "year"),
+                  model = "within")
+summary(firststage)
+
+firststagenull <- plm(form_fs_null,
+                      data = df_final,
+                      index = c("country", "year"),
+                      model = "within")
+
+# tests for first stage
+
+# simple F-test
+waldtest(firststage, firststagenull)
+
+# Second Stage
+df_final$trust_hat <- as.vector(fitted(firststage))
+indepv = c("trust_hat", 
+           "ruth_populism",
+           "trust_hat*ruth_populism")
+form_ss <- gf({depv} ~ {indepv}  + {contr})
+secondstage <- plm(form_ss,
+                   data = df_final,
+                   index = c("country", "year"),
+                   model = "within")
+summary(secondstage)
+
+# Tests
+# wu-hausmann
+phtest(secondstage, ols)
+
+levels_hat <- seq(
+  min(df_final$trust_hat, na.rm = TRUE),
+  max(df_final$trust_hat, na.rm = TRUE),
+  0.05
+)
+
+modelsummary(list(firststage, secondstage))
+
+form_ss <- gf({depv} ~ {indepv}  + {contr} + {fe})
+secondstage <- lm(form_ss,
+                  data = df_final)
+
+slopes(secondstage,
+       variables = "ruth_populism",
+       newdata = datagrid(ruth_populism = c(1, 0), 
+                          trust_hat = levels_hat)) |> 
+  mutate(lower = estimate - 1.96 * std.error, 
+         upper = estimate + 1.96 * std.error,
+         lower_90 = estimate - 1.64 * std.error, 
+         upper_90 = estimate + 1.64 * std.error,
+         lower_99 = estimate - 3.58 * std.error, 
+         upper_99 = estimate + 3.58 * std.error) ->
+  meff
+
+meff |> 
+  ggplot(aes(x = trust_hat, y = estimate)) +
+  geom_hline(yintercept = 0, color = "#C95D63", linetype = "dotted") +
+  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.8, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = lower_99, ymax = upper_99), alpha = 0.4, fill = "darkslategrey") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "darkslategrey") +
+  geom_line() +
+  labs(x = "",
+       y = "AME of Populism",
+       caption = "") +
+  theme_minimal()
+
+# COMPARISON ----
+
+modelsummary(list("OLS" = ols, 
+                  #"Second Stage" = secondstage, 
+                  "Dynamic OLS" = dols, 
+                  "Random Effects OLS" = rols),
+             estimate  = "{estimate}{stars}",
+             statistic = c("conf.int"),
+             coef_omit = c("Intercept|country"),
+             coef_map = c(
+               "ruth_populism" = "Populist",
+               "trust_share_low_linear_imp_mean_3" = "Trust (lagged)", 
+               "trust_hat" = "Trûst",
+               "executive" = "Executive Power",
+               "surplus" = "Surplus Seats",
+               "presidential" = "Presidential System",
+               "gdp_log_lag" = "GDP per capita (lagged, log)",
+               "gini" = "Gini",
+               "v2juncind_mean_3" = "Judicial Independence (mean of three lags)",
+               "trust_share_low_linear_imp_mean_3 × ruth_populism" = "Trust (lagged) x Populist",
+               "trust_hat × ruth_populism" = "Trûst x Populist"
+             ),
+             output = "latex"
+) ->
+  modelcomparison
+modelcomparison
+saveRDS(modelcomparison, "results/tables/modelcomparison_trust.rds")
+
+# ROBUSTNESS ----
+
+## REVERSE ----
+reverseols <- plm(lead(trust_share_low_linear_imp, 3) ~ jud_replace_con,
+                  data = df)
+summary(reverseols)
+
+reverseols2 <- plm(lead(trust_share_low_linear_imp, 3) ~ jud_replace_con + as.factor(country),
+                   data = df)
+summary(reverseols2)
+
+form <- gf(dplyr::lead(trust_share_low_linear_imp, 3) ~ jud_replace_con + {contr} + {fe})
+reverseols3 <- plm(form,
+                   data = df)
+summary(reverseols3)
+
+
+## ----
+
+form <- gf({depv} ~ trust_share_low_linear_imp_mean_3*changelast5 + {contr} + {fe})
+baseols <- lm(form,
+              data = df_final)
+summary(baseols)
+
+form <- gf({depv} ~ trust_share_low_linear_imp_mean_3*changelast5 + {fe})
+baseols <- lm(form,
+              data = df_final)
+summary(baseols)
+
+df4 |> 
+  select(any_of(c(depv, indepv, contr, instr, fe)), laterchange, year) |> 
+  na.omit() ->
+  df_final
+
+df_final |> 
+  filter(laterchange == 0) ->
+  df_final_onlyfirst
+
+form_iv <- gf({depv} ~ trust_share_low_linear_imp_mean_3 + {contr} + {fe} | {contr} + {fe} + {instr})
+m_iv <- ivreg(form_iv,
+              data = df_final_onlyfirst)
+summary(m_iv)
+
+### change depv ----
+
+depv = "jud_replace_cont_mean"
+
+df4 |> 
+  select(any_of(c(depv, indepv, contr, instr, fe))) |> 
+  na.omit() ->
+  df_final
+
+form_iv <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
+m_ivr1<- ivreg(form_iv,
+               data = df_final)
+
+### change instr lag  ----
+
+depv = "jud_replace_cont"
+instr = c("v2juaccnt_mean_5",
+          "v2jucorrdc_mean_5",
+          "v2jucorrdc_mean_5*ruth_populism",
+          "v2juaccnt_mean_5*ruth_populism")
+
+df4 |> 
+  select(any_of(c(depv, indepv, contr, instr, fe))) |> 
+  na.omit() ->
+  df_final
+
+form_iv  <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
+m_ivr2 <- ivreg(form_iv,
+                data = df_final)
+
+### change trust imputation lag  ----
+
+depv = "jud_replace_cont"
+indepv = c("lagged_trust_share_low_imp_lastv_1", 
+           "ruth_populism",
+           "lagged_trust_share_low_imp_lastv_1*ruth_populism")
+contr = c("evnt_sum_lag3",
+          "executive",
+          "senior_length")
+instr = c("v2juaccnt_mean_3",
+          "v2jucorrdc_mean_3",
+          "v2jucorrdc_mean_3*ruth_populism",
+          "v2juaccnt_mean_3*ruth_populism")
+
+df4 |> 
+  select(any_of(c(depv, indepv, contr, instr, fe))) |> 
+  na.omit() ->
+  df_final
+
+form_iv  <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
+m_ivr3 <- ivreg(form_iv,
+                data = df_final)
+
+
+indepv = c("lagged_trust_share_low_1", 
+           "ruth_populism",
+           "lagged_trust_share_low_1*ruth_populism")
+
+df4 |> 
+  select(any_of(c(depv, indepv, contr, instr, fe))) |> 
+  na.omit() ->
+  df_final
+
+form_iv  <- gf({depv} ~ {indepv}  + {contr} + {fe} | {contr} + {fe} + {instr})
+m_ivr4 <- ivreg(form_iv,
+                data = df_final)
+
+
+modelsummary(list(m_ivtest, m_ivr1, m_ivr2, m_ivr3, m_ivr4))
+
+
+### PROBIT ----
+
+depv = "jud_replace_con"
+df |> 
+  select(any_of(c(depv, indepv, contr, instr, fe)), year) |> 
+  na.omit() ->
+  df_final
+form <- gf({depv} ~ trust_share_low_linear_imp_mean_3 + {contr} + {fe})
+probit <- glm(form,
+              data = df_final,
+              family = binomial(link = "probit"))
+summary(probit)
+vif(baseols, type = "predictor")
+
+df_final |> 
+  filter(ruth_populism == 1 & jud_replace_con == 1) |> 
+  select(country, year) |>  View()
+
