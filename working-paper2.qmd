@@ -1,7 +1,11 @@
 ---
 title: '"The Public as a Shield": Does Trust in the Judiciary Condition Populist Attacks on the Judiciary?'
 subtitle: ""
-author: "Jasmin Sarah König"
+author:
+  - name: Jasmin Sarah König^[University of Hamburg. Jasmin wurde durch die Deutsche Forschungsgemeinschaft (DFG) – GRK 2503 gefördert. Address for Correspondence jasmin.sarah.koenig@uni-hamburg.de]
+    email: jasmin.sarah.koenig@uni-hamburg.de
+    affiliation: University of Hamburg
+  - name: Sebastian Block^[Leibniz University Hannover]
 date: last-modified
 date-format: medium
 geometry:
@@ -59,45 +63,50 @@ In our analysis, we test whether populists in office replace or add judges more 
 
 Our country fixed-effects model shows that populists in power are more likely to add or remove judges for political reasons. However, we do not find any evidence that an increase in trust in the judiciary within a country decreases the likelihood of court purges or packing, neither under populist nor non-populist governments.
 
-# Theory
+# The Rise of Populism and Why it Threatens the Independent Judiciary
 
-The increasing number of populists in office is frequently viewed as a threat to the independence of the judiciary [@Arato.2019; @Scheppele.2019; @Muller.2016]. The populist ideology builds on the belief in a homogeneous people that is morally good and capable to govern itself. In contrast, elites are depicted as the enemy of the morally good people [@Mudde.2004]. The populist vision of a democracy governed by majority rule directly challenges the system of checks and balances integral to liberal democracies [@Canovan.1999; @Meny.2002b; @Abts.2007]. Liberal democracy is based on the separation of powers, a cornerstone of which is an independent judiciary [@Abts.2007]. This tension between populism and liberal democracy often leads to the claim that populists undermine judicial independence once in power [@Arato.2019; @Scheppele.2019; @Muller.2016].
+The judiciary, in particular constitutional courts, are often regarded as the guardians of democracy \[@Ferejohn.2009; @Prendergast.2019; @Vanberg.2005, ch. 1 & 3 \]. By independently interpreting and applying the law, the judiciary acts as a check on the executive and legislative branches. The judiciary is tasked with safeguarding citizens from governmental abuses of power, as well as shielding minorities from potential tyranny by the majority \[@Rogers.2020; @Stephenson.2004; @StoneSweet.2002; @Whittington.2010\].
 
-Indeed, we frequently observe populists undermining judicial power once they are in government. In Hungary, Orbán has implemented a new constitution and replaced many judges with co-partisans [@Bencze.2022]. In Poland, independent judges were forced to retire to change the court compostition under the populist PiS' goverment [@Sadurski.2019]. The populist Kirchner government in Argentina tried to push a senior judge out of the court, who was forced to go through psycho-physical tests to not be removed from the Supreme court [@Scribner.2017]. But, not in every case of populist government can we observe such a pattern. While SYRIZA's government in 2015-2019, judicial independence did not significantly decrease. Indeed, there constitutional reform proposal even included the implementation of a Supreme Court to strengthen the rule of law [@Lorencka.2019].
+However, in times of democratic regression, the independent judiciary increasingly finds itself under threat in Europe and Latin America. Governments exhibiting authoritarian tendencies are actively seeking to undermine judicial independence as part of their efforts to expand and solidify their power [@XXX]. Given the judiciary's pivotal role as a check on executive power, the weakening of judicial power is often one of the first step sin the process of democratic backsliding [@XXX]. A judiciary that is either captured or weakened has less power, or inclination, to stop subsequent attempts to erode democracy. Consequently, it becomes easier for the executive to assault the political opposition, dismantle democratic institutions, or breach of democratic norms.
+
+XXX Bessere Überleitung "The anti-majoritarian nature of the judiciary, bla bla, neutral law, bla bla"
+
+The increasing number of attacks against the judiciary is frequently attributed to the rise of populism [@Arato.2019; @Scheppele.2019; @Muller.2016; @Schafer.2021]. The populist ideology builds on the belief in a homogeneous people that is morally good and capable to govern itself. In contrast, elites are depicted as the enemy of the morally good people [@Mudde.2004]. The populist vision of a democracy governed by majority rule directly challenges the system of checks and balances integral to liberal democracies [@Canovan.1999; @Meny.2002b; @Abts.2007]. Liberal democracy is based on the separation of powers, a cornerstone of which is an independent judiciary [@Abts.2007].
+
+Indeed, populists frequently undermine judicial power once they are in government. In Hungary, Orbán has implemented a new constitution and replaced many judges with co-partisans [@Bencze.2022]. In Poland, independent judges were forced to retire to change the court compostition under the populist PiS' goverment [@Sadurski.2019]. The populist Kirchner government in Argentina tried to push a senior judge out of the court, who was forced to go through psycho-physical tests to not be removed from the Supreme court [@Scribner.2017]. But, not in every case of populist government can we observe such a pattern. While SYRIZA's government in 2015-2019, judicial independence did not significantly decrease. Indeed, there constitutional reform proposal even included the implementation of a Supreme Court to strengthen the rule of law [@Lorencka.2019].
 
 So far, most cross-country studies have investigated the effect of populists in power on democratic quality more generally, with judicial independence as a part of an index [@Huber.2017; @RuthLovell.2022; @Juon.2020; @Konig.2024]. Their results paint a similar picture: Populists in power decrease the quality of liberal democracy, only @Konig.2024 found a positive effect in Latin American countries. But, so far we lack studies on the distinct effects on the judiciary.
 
-To undermine judicial independence governments can curb the court by changing its jurisdiction, for example limiting judicial review. Another option is to replace (purging) or add friendly judges (packing)[@Arato.2019; @Huq.2018].
+Goverments have a whole range of options to target the independent judiciary. They can target either the court's composition, or its jurisdiction. We focus on the former case: By replacing (purging) or adding friendly judges (packing) governments can capture a court [@Arato.2019; @Huq.2018]. Since courts are dependent on their perceived legitimacy among the public, politicians can also undermine the judiciary through on-going attacks [@AydinCakir.2023].[^1] We expect that these strategies are used more frequently under populist governments due to their strained relationship to non-majoritarian institutions.
 
-We expect that these strategies are used more frequently under populist governments due to their strained relationship to non-majoritarian institutions.
-
-```{=tex}
-\begin{quote}
-\textbf{Hypothesis 1}: Populist in power increase the likelihood that court packing or purges take place.
-\end{quote}
-```
-With the growing number of countries that experience a decrease in the quality of liberal democratic institutions [@Waldner.2018; @Luhrmann.2019; @Laebens.2021], scholars are increasingly interested in what makes democracies resilient against the erosion of its institutions [@Merkel.2021; @Boese.2021; @Laebens.2021; @LaTorre.2018]. Most studies agree that an organized and active resistance against autocratization among citizens is crucial to avert the erosion of democratic institutions, such as the judiciary [@Druckman.2023; @Laebens.2021; @Luhrmann.2021]. Citizens have the power to hold the executive accountable for their actions [@Druckman.2023]. As @Buhlmann.2011 (p. 318) write: "Support for the rule of law is primordial to a democracy and support for the judicial system is essential for the operation of the rule of law."
-
-The importance of public support is particularly strong in the case of the judiciary. Especially high courts do not have the power to enforce their decisions themselves, and are volatile to attacks on their legitimacy [@Vanberg.2015]. Governments might be driven by a set of motivations to respect judicial independence: constraints placed on future executives [e.g. @Vanberg.2015], informational advantages [@Rogers.2001], and fear of a public backlash [@Vanberg.2001; @Vanberg.2005; @Krehbiel.2020]. The latter aspect has been the focus of research the most. The notion is that if citizens support and trust the judiciary, they will defend the institution in upcoming elections [@Vanberg.2001; @Vanberg.2005; @Gibson.1998; @Staton.2006; @Staton.2010; @Krehbiel.2020]. "Public support provides a shield for judicial independence." [@Vanberg.2015, p.155]
-
-The current case of Israel illustrates this logic: For months, citizens went to the streets against the executive's decisions to restrict judicial review [@Bazelon.2023]. Recently, the high court decided that at least some of the reform's policies were unconstitutional [@reuters.2024]. While we do not know yet whether the executive will accept the decision on the long-term, the public protests might have paved the way for the high court's decision. The protesters signaled that non-compliance with the high court would backlash in any upcoming election.
-
-<!--# Check out the Uribe Colombia example. -->
-
-If governments do indeed constrain their actions if they are worried about a public backlash, we should observe court packing or purges less frequently if trust in the judiciary is high.
+[^1]: We know that framing of judicial actors as partisan players reduces confidence in the judiciary [@Ramirez.2008; @Baird.2006; @Magalhaes.2023; @Bonneau.2017].
 
 ```{=tex}
 \begin{quote}
-\textbf{Hypothesis 2}: With increasing trust in the judiciary, the likelihood of court purges or packing decreases.
+\textbf{Hypothesis 1}: Populist in power increase the likelihood that court packing, purges or attacks on the judiciary take place.
 \end{quote}
 ```
-Combining the two strands of research, the question arises whether public trust in the judiciary can act as a shield against populist attempts to undermine judicial independence. I expect that the effect of populists in power on court packing and purges is higher when public trust is low.
+With the growing number of countries that experience a decrease in the quality of liberal democratic institutions [@Waldner.2018; @Luhrmann.2019; @Laebens.2021],
+
+If the guardians of democracy are now in the cross-fire of populist governments, the question arises who can shield the guardian against attacks. Scholars are increasingly interested in what makes democracies resilient against the erosion of its institutions [@Merkel.2021; @Boese.2021; @Laebens.2021; @LaTorre.2018]. Most studies agree that an organized and active resistance against autocratization among citizens is crucial to avert the erosion of democratic institutions, such as the judiciary [@Druckman.2023; @Laebens.2021; @Luhrmann.2021]. Citizens have the power to hold the executive accountable for their actions [@Druckman.2023]. 
+
+Citizens are often regarded as the shield of the independent judiciary [@Vanberg.2015]. While being a crucial democratic institution, the judiciary is also inherently weak \[@Staton.2010, @Vanberg.2015; @Krehbiel.2020\]. Particularly high courts have neither the power of the "purse" nor the "sword". Neither can they can enforce their constraints on the executive \[@Vanberg.2001; @Staton.2006; @Krehbiel.2020\]. They can not defend themselves against attacks as well as other institutions since courts aim to be perceived as neutral. But, they have to take decisions against the preferences of the majority and the executive \[@Gibson.1998\]. To unfold its power, the judiciary needs support among the public [@Buhlmann.2011; @Vanberg.2001; @Staton.2006].
+
+One common explanation as to why governments respect judicial independence, despite the possibility to simply ignore the judiciary, is the fear of a public backlash \[@Vanberg.2001; @Vanberg.2005; @Krehbiel.2020\]. This idea has been developed primarily in the realm of judicial review. Especially in cases of judicial review, courts do not have the power to enforce their decisions themselves [@Vanberg.2015; @Staton.2010]. The notion is that if citizens support and trust the judiciary, they will defend the institution in upcoming elections by voting for a different party [@Vanberg.2001; @Vanberg.2005; @Gibson.1998; @Staton.2006; @Staton.2010; @Krehbiel.2020].
+
+This mechanism should work similarly if courts are under political threats. Evasion of judicial review is just one mechanism that the executive can use to undermine judicial power. Citizens who value and trust the judiciary should also be concerned about political changes to the court composition or attacks on the judiciary by the executive. The current debate of judical reforms in Isreal illustrates this logic: For months, citizens went to the streets against the executive's decisions to restrict judicial review [@Bazelon.2023]. Recently, the high court decided that at least some of the reform's policies were unconstitutional [@reuters.2024]. While we do not know yet whether the executive will accept the decision on the long-term, the public protests might have paved the way for the high court's decision. The protesters signaled that non-compliance with the high court would backlash in any upcoming election.
+
+Lately, the notion that public support shields the judiciary has been under empirical scrutiny. Some of the empirical evidence implies that voters are not willing to punish attacks on judicial independence if the partisan or policy costs are too high [@Driscoll.2023b; @Jacob.2024; @Wunsch.2023; @Bartels.2020; @GRAHAM.2020; @SVOLIK.2020]. Instead support for (horizontal) judicial power depends on whether their preferred party is in power [@Bartels.2020c]. If the incumbent is a co-partisan, support for judicial power decreases. In a similar vein, support for the judiciary is dependent on whether judicial decisions are taken in one's own interests [@Bartels.2023]. But, the evidence is not unilateral, other studies find that candidates who attack the independent judiciary receive a lower vote share [@Engst.2023]. @Saikkonen.2023 find that this is the case, even if the candidate represents the respondent's preferred policy positions on a contentious topic. @Krehbiel.2020 further shows that voters did punish non-compliance with judicial review in a cross-country study of 74 states. But, we lack cross-national comparison beyond western democracies on whether support for the judiciary among the public constrains attacks on the institution.
+
+If government parties are indeed worried about a potential electoral backlash, we should observe fewer attacks on the judiciary the more people trust the independent judiciary. In this case, they would have to consider each citizen who trusts the court as a potential person who might punish the governments. Thus we expect that court packing or purges occur less frequently if trust in the judiciary is high.
 
 ```{=tex}
 \begin{quote}
-\textbf{Hypothesis 3}: The effect of populists in power on court purges or packing is conditioned by citizens' trust in the judiciary. 
+\textbf{Hypothesis 2}: With increasing trust in the judiciary, the likelihood of court packing, purges or attacks on the judiciary decreases.
 \end{quote}
 ```
+<!--#Combining the two strands of research, the question arises whether public trust in the judiciary can act as a shield against populist attempts to undermine judicial independence. So far, we know little how populist voters view the judiciary. While some studies show that populists citizens hold similar democratic attitudes as non-populist citizens [@Wuttke.2022; @Zaslove.2023]. According to @Wuttke.2022, populist citizens support the rule of law similarly as other citizens. However, such studies do not account for the incumbent effect. Once populists are in office, the support for non-majoritarian institutions might decrease among populist citizens [@Muller.2016; @vanderBrug.2021]. We test whether the likelihood that populists attack the judiciary is conditioned by trust in the institution.   -->
+
 <!-- #Citizens particularly important in young democracies where institutions are still volatile [@]. These are likely also the countries where trust is low. -->
 
 <!-- @Bermeo.2016 (p. 10-11) summarizes the core of democratic backsliding as executive aggrandizement, in the course of which horizontal accountability is weakened and power is accumulated in the executive. This often includes the dismantling of judicial independence. -->
@@ -112,9 +121,9 @@ To study the effect of populists in government on judicial independence, we run 
 
 **Variables**
 
-The first dependent variable indicates whether a country has experienced politically motivated changes in court compositions. The V-Dem dataset collects this information in two variables on judicial purges (`v2jupurg_ord`) and court packing (`v2jupack_ord`) which indicate whether there was a "massive" or "limited, politically motivated increase in the number of judgeships" [@vdemcodebook.2022, p. 163], or "removal of judges" [@vdemcodebook.2022, p. 164].[^1] We combine these into one variable, by choosing the score that indicates more political interventions. The new variable ranges from -1.98 to 4.27 (see appendix \@fig-histdepv). Additionally, we run regressions with V-Dem's variable on the frequency of attacks on the judiciary (`v2jupoatck`). The variable ranges from -2.86 to 4.4 (see appendix \@fig-histdepv).
+The first dependent variable indicates whether a country has experienced politically motivated changes in court compositions. The V-Dem dataset collects this information in two variables on judicial purges (`v2jupurg_ord`) and court packing (`v2jupack_ord`) which indicate whether there was a "massive" or "limited, politically motivated increase in the number of judgeships" [@vdemcodebook.2022, p. 163], or "removal of judges" [@vdemcodebook.2022, p. 164].[^2] We combine these into one variable, by choosing the score that indicates more political interventions. The new variable ranges from -1.98 to 4.27 (see appendix \@fig-histdepv). Additionally, we run regressions with V-Dem's variable on the frequency of attacks on the judiciary (`v2jupoatck`). The variable ranges from -2.86 to 4.4 (see appendix \@fig-histdepv).
 
-[^1]: See the appendix for robustness tests with different operationalizations of the variable.
+[^2]: See the appendix for robustness tests with different operationalizations of the variable.
 
 The data on populism is taken from @RuthLovell.2022 who in turn have used the PopuList [@Rooduijn.2019] and data from @Huber.2017 additionally to their own coding. The variable is binary with 1 indicating that the head of government is populist, otherwise the variable is 0. We have updated the dataset for the years since 2018.
 
@@ -124,7 +133,7 @@ Data on trust in the judiciary is aggregated from the Latinobarometer [@Latinoba
 
 Both, Latino- and Eurobarometer, include some years with missing observations. In these cases we have imputed data. Our imputation mechanism assumes that trust has developed linearly throughout the missing observations. In the main model, we use the last three years' mean for this variable. We include models in the appendix (see @tbl-indepv and @tbl-indepv_w) with other operationalizations (one year lag, mean of last 5 years) as well as different handling of the missing data on trust: In one, we drop the observations with missing values. In the other we use an imputation mechanisms that chooses the value from the closest date.
 
-![Density plot of independent variable trust.](results/graphs/trust_histogram.pdf){fig-align="center"}
+![Density plot of independent variable trust in judiciary. Color indicates years under populist and non-populist governments.](results/graphs/trust_histogram.pdf){fig-align="center"}
 
 **Controls**
 
@@ -174,13 +183,21 @@ In the case of attacks on the judiciary, the results point in the opposite direc
 
 **Initial Court Purges and Packing**
 
-Of course, a previous decision by the executive to change court compositions for political reasons might impact their decision to take these steps again. Once the dam is broken, there is little reason to not take similar steps again. We test this by including an interaction effect with the dummy variable that indicates whether court purges or packing has taken place in the last three or five years. We ran one model including a simple interaction effect between trust and former court purges or packing to test whether this is a general relationship. The effect is not significant, even if there have not been any changes in court compositions in the years before trust does not have an effect on the likelihood of court purges or packing (see appendix, @tbl-dynamic_pp, model 2 and 4).
+A previous decision by the executive to change court compositions for political reasons might impact their decision to take these steps again. Once the dam is broken, there is little reason to not take similar steps again. We test this by including an interaction effect with the dummy variable that indicates whether court purges or packing has taken place in the last three or five years. We ran one model including a simple interaction effect between trust and former court purges or packing to test whether this is a general relationship. The effect is not significant, even if there have not been any changes in court compositions in the years before trust does not have an effect on the likelihood of court purges or packing (see appendix, @tbl-dynamic_pp, model 2 and 4).
 
 In another model, we include a triple interaction effect between populism, trust and former court purges and packing. The results shows that trust does not condition populist executive's decisions to change court compositions, independent of whether such actions were already taken in the years before (see appendix, @tbl-dynamic_pp, model 3 and 5).
 
 **Judicial Independence**
 
 In @tbl-dynamic_ji_atck and @tbl-dynamic_ji_pp, we test whether the effect of trust on executives' decisions to undermine the judiciary is conditioned by the former quality of judicial independence. But, contrary to our expectation, the model implies that in cases of high judicial independence, high trust increases the likelihood of court purges and packing (see @tbl-dynamic_ji_pp, model 2 and @fig-dynpp). Considering attacks on the judiciary, we do not find that judicial independence conditions the effect of trust (see @tbl-dynamic_ji_atck, model 2 and @fig-dynatck).
+
+### Discussion
+
+If we look at the data behind our models, we see that significant attacks on judicial independence such as in Poland in 2019 have taken place when trust in the judiciary was relatively high. In Poland, only 22% of the people trusted the judiciary in 2007, but the attacks on the judiciary took place between 2015 and 2019 when more than 40% of the people responded that they trusted the courts. One explanation as to why we find a conditioning effect of trust in the judiciary on attacks on the latter is that trust just has not risen high enough in countries that have experiences such attacks. Take Poland as an example, despite a significant increase in trust in the judiciary over time (almost 20%), a majority of the citizens still did not trust the judiciary when the PiS government decided to undermine judicial independence.
+
+In general, our results can not speak to the mechanism behind our finding that within country increases of trust in the judiciary do not decrease the likelihood of attacks on the judiciary. Recently, many scholars have shown that voters lack the willingness to translate their diffuse support for the court into actions at the ballot box [@Jacob.2024; @Wunsch.2023; @Driscoll.2023b]. However, there might also be other reasons for our finding. Short-term increases in trust might not have the same effect as long-term trust in the judiciary. A court that has been a trusted institution for multiple decades might be defended more willingly than a comparatively young institution, or one that has only gained the trust of the public. Another reason for this finding might be that the public does not recognize attacks on the judiciary as such [@Chiopris.2024]. @Magalhaes.2023 show that trust in the judiciary in Hungary did not decrease once the judiciary's independence was undermined by president Orbán. These results imply that citizens might not have recognized the actions as problematic.
+
+So far, experimental studies are restricted to few countries. Our cross-country comparison corrobates the findings of earlier research that we might have overestimated the effect of voters' support as a shield for the judiciary. The results show that we need more research on what drives citizens to punish incumbents' undemocratic actions beyond partisanship and policy preferences.
 
 # Conclusion
 
@@ -199,6 +216,8 @@ This is in line with recent findings that highlight voters' willingness to trade
 
 ::: {#appendix-count}
 # Appendix
+
+![Attacks on the judiciary in across continents.](results/graphs/attacks_judiciary.pdf){fig-align="center"}
 
 ### Court Purges and Packing {#sec-coding}
 
