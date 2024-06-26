@@ -140,6 +140,26 @@ ggsave(glue("results/graphs/ols_interaction_{depv}.pdf"),
 
 saveRDS(plot, glue("results/graphs/ols_interaction_{depv}.RDS"))
 
+theme_set(theme_bar)
+marg_effects(ols_robust, variable = "trust_share_low_linear_imp_mean_3") %>% 
+  mutate(ruth_populism = if_else(ruth_populism == 1, "Populist", "Non-Populist")) %>% 
+  ggplot(aes(x = ruth_populism,
+             y = estimate,
+             ymin = conf.low,
+             ymax = conf.high)) +
+  geom_hline(yintercept = 0, 
+             color = "#C95D63", 
+             linetype = "dashed") +
+  geom_pointrange() +
+  labs(x = NULL,
+       y = "AME of Trust")
+
+
+ggsave(glue("results/graphs/ols_interaction_ametrust_{depv}.pdf"),
+       device = cairo_pdf,
+       width = 8,
+       height = 6)
+
 ### OLS BASE MODELS ----
 
 # only independent variables

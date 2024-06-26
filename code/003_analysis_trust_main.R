@@ -40,8 +40,8 @@ plot2 <- readRDS("results/graphs/ols_interaction_v2jupoatck.RDS") +
   theme(axis.text.y.left = element_blank(),
         axis.title.y = element_blank())
 
-plot1 + plot_spacer() + plot2 + plot_layout(guides = 'collect',
-                                            widths = c(1,0.015,1))
+plot1  + plot2 + plot_layout(guides = 'collect',
+                                            widths = c(1,1))
 
 ggsave("results/graphs/ols_interaction.pdf",
        device = cairo_pdf,
