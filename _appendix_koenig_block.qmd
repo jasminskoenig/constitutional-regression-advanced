@@ -1,0 +1,405 @@
+## Appendix Who Shields the Guardian?
+
+```{r}
+#| include: false
+
+library(xtable)
+library(papeR)
+library(stargazer)
+library(gt)
+library(modelsummary)
+library(tidyverse)
+```
+
+### Descriptives
+
+Frequently, the claim is made that the judiciary is under threat more and more often [@Graber.2018]. However, if we consider the data, attacks on the judiciary are rising in Europe and North America. It is worthy to note that these are also the regions where judicial independence was, on average, the highest before the recent rise in attacks.
+
+![Attacks on the judiciary in across continents.](results/graphs/attacks_judiciary.pdf){#fig-attacks fig-align="center"}
+
+Distribution of the dependent variables.
+
+![Density plot of court packing & purges and attacks on judiciary.](results/graphs/independentvar_histogram.pdf){#fig-densitydv fig-align="center"}
+
+![Density plot of independent variable trust in judiciary.](results/graphs/trust_histogram.pdf){#fig-densityiv fig-align="center"}
+
+{{< pagebreak >}}
+
+### Data & Coding {#sec-coding}
+
+We use the variables **v2jupurge** and **v2jupack** to create our variable on court packing and purges. The following table shows the original questions the experts were asked. **v2jupoatck** is used by us to measure more general verbal attacks on the judiciary. These ordinary scales are then transformed into intervall-point scales to combine the different assessments by the experts [see @vdemmethod.2024]. The quotes in the table are taken from @vdemcodebook.2022.
+
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| V-Dem Codebook Description                                                                                                                                                                                                                                                                                                                                          |
++=====================================================================================================================================================================================================================================================================================================================================================================+
+| **v2jupurge**                                                                                                                                                                                                                                                                                                                                                       |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| "Question: Judges are sometimes removed from their posts for cause, as when there is strong evidence of corruption; however, some judges are removed arbitrarily, typically for political reasons. With this distinction in mind, please describe the removal of judges that occurred this calendar year.                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Clarification: The second and third response categories permit you to distinguish among limited arbitrary removals (i.e., when only a few judges are targeted) by the political importance of the removal. For example, you may consider the arbitrary removal of a few high court judges as more important than the arbitrary removal of a few lower court judges. |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Responses:                                                                                                                                                                                                                                                                                                                                                          |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 0: There was a massive, arbitrary purge of the judiciary.                                                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 1: There were limited but very important arbitrary removals.                                                                                                                                                                                                                                                                                                        |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 2: There were limited arbitrary removals.                                                                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 3: Judges were removed from office, but there is no evidence that the removals were arbitrary.                                                                                                                                                                                                                                                                      |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 4: Judges were not removed from their posts."                                                                                                                                                                                                                                                                                                                       |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| **v2jupack**                                                                                                                                                                                                                                                                                                                                                        |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| "Question: The size of the judiciary is sometimes increased for very good reasons, as when judges are added to manage an increasing caseload; however, sometimes judges are added purely for political reasons. With this distinction in mind, please describe any increases in the size of the judiciary that occurred this calendar year.                         |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Clarification: The second and third response categories permit you to distinguish among limited court packing efforts (i.e. when relatively few judgeships are added) by the political importance of the packing. For example, you may consider the packing of the high court to be more important than the packing of a lower court.                               |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Responses:                                                                                                                                                                                                                                                                                                                                                          |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 0: There was a massive, politically motivated increase in the number of judgeships across the entire judiciary.                                                                                                                                                                                                                                                     |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 1: There was a limited, politically motivated increase in the number of judgeships on very important courts.                                                                                                                                                                                                                                                        |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 2: There was a limited, politically motivated increase in the number of judgeships.                                                                                                                                                                                                                                                                                 |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 3: Judgeships were added to the judiciary, but there is no evidence that the increase was politically motivated; or there was no increase."                                                                                                                                                                                                                         |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| **v2jupoatck**                                                                                                                                                                                                                                                                                                                                                      |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| "Question: How often did the government attack the judiciary’s integrity in public?                                                                                                                                                                                                                                                                                 |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Clarification: Attacks on the judiciary’s integrity can include claims that it is corrupt, incompetent or that decisions were politically motivated. These attacks can manifest in various ways including, but not limited to prepared statements reported by the media, press conferences, interviews, and stump speeches.                                         |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| Responses:                                                                                                                                                                                                                                                                                                                                                          |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 0: Attacks were carried out on a daily or weekly basis.                                                                                                                                                                                                                                                                                                             |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 1: Attacks were common and carried out in nearly every month of the year.                                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 2: Attacks occurred more than once.                                                                                                                                                                                                                                                                                                                                 |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 3: There were attacks, but they were rare.                                                                                                                                                                                                                                                                                                                          |
+|                                                                                                                                                                                                                                                                                                                                                                     |
+| 4: There were no attacks on the judiciary’s integrity."                                                                                                                                                                                                                                                                                                             |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+</div>
+
+{{< pagebreak >}}
+
+#### Cases in Dataset
+
+The dataset spans over a different timespans for the different countries. @tbl-cases shows the years included per country and which years were imputed for our main model. To see the imputed values, as well as the last and next value the dataset contains, see @tbl-imputed. We ran robustness checks without and with different imputations, for the results see @tbl-indepv_w_pp and @tbl-indepv_w_atck, or for an overview of the results of the robustness checks see @fig-coefpp to @fig-coefatck.
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| error: false
+#| tbl-cap: Countries and years included in study. Imputed years were linearly imputed for the main models.
+#| label: tbl-cases
+
+countries <- readRDS("results/tables/country_overview.rds")
+
+countries |> 
+  rename(Country = country, "Imputed Years" = Imputed) %>% 
+  gt() |> 
+  tab_options(table.font.size = 8, table.width = pct(100)) %>% 
+  as_latex() 
+```
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-imputed
+#| tbl-cap: Imputed values in years when court purges or packing occured
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/imputation.tex")  
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+In the following pages, we show the included countries and time-frames graphically. @fig-country2 shows the trust in the judiciary across all countries. The plots show that trust in the judiciary is not steady across time within a country but de- and increases.
+
+@fig-countryreg
+
+\blandscape
+
+![Part 1: Trust in judiciary across countries in dataset over time.](results/graphs/country_descriptives_trust.pdf){fig-align="center" fig-pos="H"}
+
+![Part 2: Trust in judiciary across countries in dataset over time.](results/graphs/country_descriptives_trust2.pdf){#fig-country2 fig-align="center" fig-pos="H"}
+
+\elandscape
+
+{{< pagebreak >}}
+
+### Regression Models
+
+In this appendix, there are quite a few robustness checks. If you would like to get a quick overview of whether these change our results, we would like to guide you to figure @fig-coefpp to @fig-coefatckint, which show a distribution of each coefficient for our main models across all robustness tests.
+
+#### Interaction Populism & Trust
+
+The first robustness check tests whether trust only has "guardian effect" when the government is non-populist. If populist voters shared their party contempt for the judiciary, a populist government might be less worried about their voters being among the ones who trust and defend the independent judiciary. However, the interaction effect between populists in office and trust is not significant in the case of court purges and packing, see @tbl-results_appendix and @fig-ametrust. Surprisingly, the interaction effect is significant for verbal attacks on the judiciary (see @fig-ametrustatc).
+
+\renewcommand{\arraystretch}{0.5}
+
+```{r}
+#| output: asis  
+#| echo: false  
+#| warning: false  
+#| label: tbl-results_appendix  
+#| tbl-cap: OLS Regression Models    
+
+# Read the .tex file content  
+tex_content <- readLines("results/tables/mainmodels.tex")  %>%    gsub("Trustmean3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)  
+
+# Print the content as raw LaTeX  
+cat(tex_content, sep="\n")
+```
+
+![AME of Trust on court purges and packing conditioned by populists in power. Based on @tbl-results, model 2.](results/graphs/ols_interaction_ametrust_jud_replace_cont.pdf){#fig-ametrust fig-pos="H" fig-scap="AME of Trust on court purges and packing conditioned by populists in power." fig-align="center" width="70%"}
+
+![AME of Trust conditioned by Populists in Power. Based on @tbl-results, model 4](results/graphs/ols_interaction_ametrust_v2jupoatck.pdf){#fig-ametrustatc fig-pos="H" fig-scap="AME of Trust conditioned by Populists in Power." fig-align="center" width="70%"}
+
+#### Full models
+
+The following tables shows all models for the main regressions, building up from a simple model to one including fixed-effects (2), and controls (3). We further include a model with all variables but no fixed-effects (4) and the interaction effect discussed before. The results show that populism still has a significant effect on court purges and packing as well as attacks on the judiciary if we do not include fixed-effects (see @tbl-fullpp, model 4 and @tbl-fullatck, model 4). Trust in the judiciary has the expected significant effect on both, court purges and packing as well as attacks on the judiciary if the models are run without fixed-effects (see @tbl-fullpp, model 4 and @tbl-fullatck, model 4). However, this can not be interpreted substantively since the higher respect for judicial independence in countries with higher trust in the judiciary could be related to many other confounding variables, such as socio-economic factors or institutional stability. We would further argue that the an important question of interest is rather whether increasing trust in the judiciary will guard the institution in countries where the judiciary is under threat.
+
+\blandscape
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-fullpp
+#| tbl-cap: Main regressions for DV court purges & packing.
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/mainmodels_jud_replace_cont.tex")  %>% 
+  gsub("Trustmean3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)  %>% 
+  gsub("Trustmean5", "Trust$_{\\bar{t}_{-1,-2,-3, -4, -5}}$", ., fixed = TRUE)  %>%
+  gsub("Trust1", "Trust$_{{t}_{-1}}$", ., fixed = TRUE) %>% 
+  gsub("Trustnoimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("GDP", "GDP$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Judicial Independence", "Judicial Independence$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Trustlastimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>%
+  gsub("Trusthighmean3", "Trust High$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+\renewcommand{\arraystretch}{0.5}
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-fullatck
+#| tbl-cap: Main regressions for DV attacks on judiciary.
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/mainmodels_v2jupoatck.tex")  %>% 
+  gsub("Trustmean3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)  %>% 
+  gsub("Trustmean5", "Trust$_{\\bar{t}_{-1,-2,-3, -4, -5}}$", ., fixed = TRUE)  %>%
+  gsub("Trust1", "Trust$_{{t}_{-1}}$", ., fixed = TRUE) %>% 
+  gsub("Trustnoimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("GDP", "GDP$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Judicial Independence", "Judicial Independence$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+\elandscape
+
+#### Random-Effects Models
+
+To ensure the validity of our findings despite the possible heterogeneity in the time-series data we also run random-intercept models (see appendix, @tbl-random). The findings are in line with the findings of our main models.
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-random
+#| tbl-cap: Results of random effects models. Standard errors are clustered by country.
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/randommodels.tex")  %>% 
+  gsub("Trustmean3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)  %>% 
+  gsub("Trustmean5", "Trust$_{\\bar{t}_{-1,-2,-3, -4, -5}}$", ., fixed = TRUE)  %>%
+  gsub("Trust1", "Trust$_{{t}_{-1}}$", ., fixed = TRUE) %>% 
+  gsub("Trustnoimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("GDP", "GDP$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Judicial Independence", "Judicial Independence$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+```
+
+{{< pagebreak >}}
+
+#### Robustness Checks for Trust Variable
+
+The trust variable in our main models we use the last three years' mean for this variable (Trust~t-1,-2,-3~) and impute missing values linearly. In the case of Latin America, the binary variable is recoded from an ordinal one. In the main models, we coded people who trust the judiciary *a lot* or *some* as trusting the judiciary. In the robustness check, we also include the people who trust the judiciary *a little,* leaving only the people who say they do not trust the judiciary at all out. The results are shown in @tbl-indepv_w_pp and @tbl-indepv_w_atck in the model "Trust High" (1). The results change somewhat, with trust now even increasing the likelihood of court purges and packing. As with our main models, we find no evidence that rising trust in the institution guards it from being under threat.
+
+To test whether our imputation mechaism has an impact on our results, we test different options. Model 2 "No Imputation" simply filters our all cases in which there is no data. The results do not differ from our main models for attacks, see @tbl-indep_w_atck. However, for court purges and packing we again observe a significant effect in the opposite direction than expected, see @tbl-indepv_w_pp. While this would caution us from interpreting the variable substantively, it speaks once again against the hypothesis that increasing trust protects the judiciary. Model 3 "Closest Imputation" uses the value from nearest year and copies it as the imputation. Again, the results do not differ from the main models for attack, see @tbl-indep_w_atck, while the coefficient turns positive and significant for court purges and packing, see @tbl-indepv_w_pp. We conclude that while we see some differences depending on how we impute trust variable, all models lack evidence or even speak against the hypothesis that trust can protect judicial independence.
+
+Lastly, we use the last three years' mean of the variable trust in our main model. We test whether this has an impact by using last year's trust value (4 - Linear Imputation) and the last five years' mean of the variable trust (5 - Linear Imputation). Only in the model on court purges and packing that uses the last five years' mean, do we find a difference. Again, the trust coefficient turns significant in the opposite direction then expected, see @tbl-indepv_w_pp, model 5.
+
+\blandscape
+
+\renewcommand{\arraystretch}{0.4}
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-indepv_w_pp
+#| tbl-cap: Regression models with different calculations of trust variable without interaction effect for DV court purges & packing.
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/models_indepchange_w_jud_replace_cont.tex") %>% 
+  gsub("Trustmean3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)  %>% 
+  gsub("Trustmean5", "Trust$_{\\bar{t}_{-1,-2,-3, -4, -5}}$", ., fixed = TRUE)  %>%
+  gsub("Trust1", "Trust$_{{t}_{-1}}$", ., fixed = TRUE) %>% 
+  gsub("Trustnoimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("GDP", "GDP$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Judicial Independence", "Judicial Independence$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Trustlastimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>%
+  gsub("Trusthighmean3", "Trust High$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)
+    
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+```
+
+\renewcommand{\arraystretch}{0.4}
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-indepv_w_atck
+#| tbl-cap: Regression models with different calculations of trust variable without interaction effect for DV attacks on judiciary.
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/models_indepchange_w_v2jupoatck.tex")%>% 
+  gsub("Trustmean3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)  %>% 
+  gsub("Trustmean5", "Trust$_{\\bar{t}_{-1,-2,-3, -4, -5}}$", ., fixed = TRUE)  %>%
+  gsub("Trust1", "Trust$_{{t}_{-1}}$", ., fixed = TRUE) %>% 
+  gsub("Trustnoimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("GDP", "GDP$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Judicial Independence", "Judicial Independence$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Trustlastimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>%
+  gsub("Trusthighmean3", "Trust High$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+```
+
+\elandscape
+
+{{< pagebreak >}}
+
+#### Dynamic Models
+
+We further tested whether the court purges and packing ahead of the year under observation have an effect on current court purges and packing. The argument behind this is that if these practices are common, goverments might have less of a backlash to expect. They might already know that undermining judicial independence does not harm their electoral success.
+
+We test this by including a dummy variable that indicates whether court purges or packing have taken place in the last three or five years, see @tbl-dynamic_ppm, model 1 ("Main Model").
+
+XXX
+
+Similarly, @tbl-dynamic_ji_pp and @tbl-dynamic_ji_atck the mean of the last three years' judicial independence.
+
+\blandscape
+
+\renewcommand{\arraystretch}{0.2}
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-dynamic_pp
+#| tbl-cap: Regression models including interactions with dummy variable indicating whether court purges or packing already took place in the last §/5 years for DV court purges and packing.
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/dynamicmodels_jud_replace_cont.tex")%>% 
+  gsub("Trustmean3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)  %>% 
+  gsub("Trustmean5", "Trust$_{\\bar{t}_{-1,-2,-3, -4, -5}}$", ., fixed = TRUE)  %>%
+  gsub("Trust1", "Trust$_{{t}_{-1}}$", ., fixed = TRUE) %>% 
+  gsub("Trustnoimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("GDP", "GDP$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Judicial Independence", "Judicial Independence$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Former Purges/Packing", "Purge/Pack$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+```
+
+\elandscape
+
+![Average marginal effect of populism conditioned by trust if there were no court purges or packing in the last 5 years.](results/graphs/tripleinteraction_dynamic_jud_replace_cont.pdf){fig-align="center" fig-pos="H"}
+
+\renewcommand{\arraystretch}{0.4}
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-dynamic_ji_pp
+#| tbl-cap: Regression models including interactions with judicial independence in the last three years (mean) for DV court purges and packing.
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/dynamicmodels_ji_jud_replace_cont.tex")%>% 
+  gsub("Trustmean3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)  %>% 
+  gsub("Trustmean5", "Trust$_{\\bar{t}_{-1,-2,-3, -4, -5}}$", ., fixed = TRUE)  %>%
+  gsub("Trust1", "Trust$_{{t}_{-1}}$", ., fixed = TRUE) %>% 
+  gsub("Trustnoimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("GDP", "GDP$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Judicial Independence", "Judicial Independence$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+\renewcommand{\arraystretch}{0.4}
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-dynamic_ji_atck
+#| tbl-cap: Regression models including interactions with judicial independence in the last three years (mean) for DV attacks on judiciary.
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/dynamicmodels_ji_v2jupoatck.tex")%>% 
+  gsub("Trustmean3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)  %>% 
+  gsub("Trustmean5", "Trust$_{\\bar{t}_{-1,-2,-3, -4, -5}}$", ., fixed = TRUE)  %>%
+  gsub("Trust1", "Trust$_{{t}_{-1}}$", ., fixed = TRUE) %>% 
+  gsub("Trustnoimp", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("GDP", "GDP$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  gsub("Judicial Independence", "Judicial Independence$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE)
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+```
+
+![AME of trust on court purges and packing condtitioned by judicial independence in the three years before.](results/graphs/dynamic_interaction_trustji_jud_replace_cont.pdf){#fig-dynpp fig-align="center" fig-pos="H"}
+
+![AME of trust on attacks on judiciary condtitioned by judicial independence in the three years before.](results/graphs/dynamic_interaction_trustji_v2jupoatck.pdf){#fig-dynatck fig-align="center" fig-pos="H"}
+
+![Density plot of high, medium and low judicial independence across trust.](results/graphs/density_jitrust.pdf){fig-align="center" fig-pos="H"}
+
+![Distribution of coefficient size across all models estimating effect on court purges and packing without interaction.](results/graphs/coefficients_w_jud_replace_cont.pdf){#fig-coefpp fig-align="center" fig-pos="H"}
+
+![Distribution of coefficient size across all models estimating effect on attacks on judiciary without interaction.](results/graphs/coefficients_w_v2jupoatck.pdf){#fig-coefatck fig-align="center" fig-pos="H"}

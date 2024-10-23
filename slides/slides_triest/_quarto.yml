@@ -1,0 +1,14 @@
+institute: "University of Hamburg <br> Research Training Group Collective Decision-Making"
+author: "Jasmin Sarah König & Tilko Swalve"
+footer: "THE DEMISE OF POLITICS WORKSHOP"
+format:
+  revealjs:
+    theme: slides.scss
+    transition: fade
+    slide-number: true
+    chalkboard: false
+    controls: true
+editor: visual
+execute:
+  freeze: auto
+  echo: true

@@ -1,5 +1,16 @@
 ## MAIN ANALYSIS FILE
 
+
+## Graphics ----
+
+source("../../dissertation/src/graphics.R")
+source("./src/analysis_functions.R")
+theme_set(theme_regression)
+
+options(modelsummary_format_numeric_latex = "plain")
+
+# Run ---
+
 depv <- "jud_replace_cont"
 
 source("code/0031_analysistrust2.R")
@@ -10,10 +21,32 @@ source("code/0031_analysistrust2.R")
 
 olsrows <- data.frame("Coefficients" = "Country FE",
                       "(1)" = "Yes",
+                      "(2)" = "Yes")
+attr(olsrows, "position") <- 17
+
+modelsummary(list("Court Purges & Packing" = baseols3_jud_replace_cont, 
+                  "Attacks on Judiciary" = baseols3_v2jupoatck),
+             coef_rename = coef_names,
+             estimate  = "{estimate}{stars}",
+             statistic = c("conf.int"),
+             coef_omit = c("Intercept|country"),
+             add_rows = olsrows,
+             output = "latex",
+             modelsummary_format_numeric_latex = "plain",
+             notes = list('+p < 0.1; *p < 0.05; **p > 0.01; ***p < 0.001')
+) |> 
+  kable_styling(font_size=10) |> 
+  kable_classic_2() ->
+  mainmodels
+
+writeLines(mainmodels, glue("results/tables/mainmodels_small.tex"))
+
+olsrows <- data.frame("Coefficients" = "Country FE",
+                      "(1)" = "Yes",
                       "(2)" = "Yes",
                       "(3)" = "Yes",
                       "(4)" = "Yes")
-attr(olsrows, "position") <- 21
+attr(olsrows, "position") <- 19
 
 modelsummary(list("No Interaction" = baseols3_jud_replace_cont, 
                   "Interaction" = ols_robust_jud_replace_cont, 
@@ -25,10 +58,11 @@ modelsummary(list("No Interaction" = baseols3_jud_replace_cont,
              coef_omit = c("Intercept|country"),
              add_rows = olsrows,
              output = "latex",
-             modelsummary_format_numeric_latex = "plain"
+             modelsummary_format_numeric_latex = "plain",
+             notes = list('+p < 0.1; *p < 0.05; **p > 0.01; ***p < 0.001')
 ) |> 
   add_header_above(c(" " = 1, "Court Purges & Packing" = 2, "Attacks on Judiciary" = 2)) %>% 
-  kable_styling() |> 
+  kable_styling(font_size=10) |> 
   kable_classic_2() ->
   mainmodels
 
@@ -40,8 +74,8 @@ plot2 <- readRDS("results/graphs/ols_interaction_v2jupoatck.RDS") +
   theme(axis.text.y.left = element_blank(),
         axis.title.y = element_blank())
 
-plot1 + plot_spacer() + plot2 + plot_layout(guides = 'collect',
-                                            widths = c(1,0.015,1))
+plot1  + plot2 + plot_layout(guides = 'collect',
+                                            widths = c(1,1))
 
 ggsave("results/graphs/ols_interaction.pdf",
        device = cairo_pdf,
@@ -68,10 +102,11 @@ modelsummary(list("No Interaction" = rols_jud_replace_cont,
              coef_omit = c("Intercept|country"),
              add_rows = olsrows,
              output = "latex",
-             modelsummary_format_numeric_latex = "plain"
+             modelsummary_format_numeric_latex = "plain",
+             notes = list('+p < 0.1; *p < 0.05; **p > 0.01; ***p < 0.001')
 ) |> 
   add_header_above(c(" " = 1, "Court Purges & Packing" = 2, "Attacks on Judiciary" = 2)) %>% 
-  kable_styling() |> 
+  kable_styling(font_size=10) |> 
   kable_classic_2() ->
   randommodels
 

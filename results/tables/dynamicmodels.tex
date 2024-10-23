@@ -1,0 +1,45 @@
+\begin{table}
+\centering\centering\centering
+\begin{tabular}[t]{lccccc}
+\toprule
+\multicolumn{1}{c}{ } & \multicolumn{3}{c}{5 Years} & \multicolumn{2}{c}{3 Years} \\
+\cmidrule(l{3pt}r{3pt}){2-4} \cmidrule(l{3pt}r{3pt}){5-6}
+  & Main Model & Interaction & Triple Interaction & Interaction  & Triple Interaction \\
+\midrule
+Trust (lagged) & \num{-0.244} & \num{0.095} & \num{-0.361} & \num{0.095} & \num{0.475}\\
+ & {}[\num{-0.668}, \num{0.181}] & {}[\num{-0.842}, \num{1.033}] & {}[\num{-1.768}, \num{1.045}] & {}[\num{-0.842}, \num{1.033}] & {}[\num{-1.097}, \num{2.046}]\\
+Populist & \num{-0.057} & \num{-0.278}*** & \num{-0.879}* & \num{-0.278}*** & \num{-0.608}\\
+ & {}[\num{-0.360}, \num{0.245}] & {}[\num{-0.423}, \num{-0.132}] & {}[\num{-1.692}, \num{-0.065}] & {}[\num{-0.423}, \num{-0.132}] & {}[\num{-1.476}, \num{0.260}]\\
+Surplus Seats & \num{-0.024} & \num{-0.006} & \num{0.015} & \num{-0.006} & \num{0.003}\\
+ & {}[\num{-0.095}, \num{0.047}] & {}[\num{-0.076}, \num{0.064}] & {}[\num{-0.047}, \num{0.076}] & {}[\num{-0.076}, \num{0.064}] & {}[\num{-0.060}, \num{0.065}]\\
+Executive Power & \num{0.025} & \num{-0.027} & \num{0.109} & \num{-0.027} & \num{0.109}\\
+ & {}[\num{-0.094}, \num{0.145}] & {}[\num{-0.135}, \num{0.080}] & {}[\num{-0.050}, \num{0.267}] & {}[\num{-0.135}, \num{0.080}] & {}[\num{-0.051}, \num{0.268}]\\
+Presidential System & \num{-0.929}*** & \num{-1.264}*** & \num{-1.221}*** & \num{-1.264}*** & \num{0.743}*\\
+ & {}[\num{-1.313}, \num{-0.545}] & {}[\num{-1.432}, \num{-1.097}] & {}[\num{-1.405}, \num{-1.038}] & {}[\num{-1.432}, \num{-1.097}] & {}[\num{0.086}, \num{1.399}]\\
+GDP per capita (lagged, log) & \num{0.501} & \num{0.404} & \num{0.577} & \num{0.404} & \num{0.544}\\
+ & {}[\num{-0.547}, \num{1.550}] & {}[\num{-0.645}, \num{1.453}] & {}[\num{-0.454}, \num{1.608}] & {}[\num{-0.645}, \num{1.453}] & {}[\num{-0.499}, \num{1.588}]\\
+Democracy Age & \num{0.002} &  &  &  & \num{-0.001}\\
+ & {}[\num{-0.002}, \num{0.005}] &  &  &  & {}[\num{-0.004}, \num{0.003}]\\
+Former Purges/Packing & \num{0.338}*** & \num{0.488}* & \num{0.075} & \num{0.488}* & \num{0.345}\\
+ & {}[\num{0.157}, \num{0.519}] & {}[\num{0.077}, \num{0.898}] & {}[\num{-0.369}, \num{0.519}] & {}[\num{0.077}, \num{0.898}] & {}[\num{-0.211}, \num{0.900}]\\
+Coalition Gov. & \num{0.138}** &  &  &  & \num{0.089}+\\
+ & {}[\num{0.037}, \num{0.239}] &  &  &  & {}[\num{-0.001}, \num{0.180}]\\
+Trust (lagged):Populist & \num{-0.665} &  & \num{0.512} &  & \num{-0.325}\\
+ & {}[\num{-1.488}, \num{0.158}] &  & {}[\num{-1.713}, \num{2.737}] &  & {}[\num{-2.682}, \num{2.033}]\\
+Trust (lagged):Former Purges/Packing &  & \num{-0.562} & \num{0.127} & \num{-0.562} & \num{-0.693}\\
+ &  & {}[\num{-1.634}, \num{0.510}] & {}[\num{-1.285}, \num{1.539}] & {}[\num{-1.634}, \num{0.510}] & {}[\num{-2.297}, \num{0.910}]\\
+Populist:Former Purges/Packing &  &  & \num{1.439}** &  & \num{1.152}*\\
+ &  &  & {}[\num{0.417}, \num{2.461}] &  & {}[\num{0.144}, \num{2.159}]\\
+Trust (lagged):Populist:Former Purges/Packing &  &  & \num{-2.580}+ &  & \num{-1.698}\\
+ &  &  & {}[\num{-5.248}, \num{0.088}] &  & {}[\num{-4.329}, \num{0.932}]\\
+\midrule
+Country FE & No & Yes & Yes & No & Yes\\
+Num.Obs. & \num{746} & \num{746} & \num{746} & \num{746} & \num{746}\\
+R2 & \num{0.910} & \num{0.908} & \num{0.918} & \num{0.908} & \num{0.919}\\
+R2 Adj. & \num{0.904} & \num{0.902} & \num{0.912} & \num{0.902} & \num{0.914}\\
+AIC & \num{2497.1} & \num{2491.4} & \num{2505.5} & \num{2491.4} & \num{2509.2}\\
+BIC & \num{2727.9} & \num{2712.9} & \num{2740.9} & \num{2712.9} & \num{2753.8}\\
+RMSE & \num{1.21} & \num{1.21} & \num{1.21} & \num{1.21} & \num{1.21}\\
+\bottomrule
+\end{tabular}
+\end{table}

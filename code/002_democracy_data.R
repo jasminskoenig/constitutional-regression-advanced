@@ -30,7 +30,7 @@ vdem2 %>%
          v2juaccnt, v2jucorrdc, v2juhcind, v2juncind, v2juhccomp,
          v2jucomp, v2jureview, v2x_regime, v2xnp_pres, v2reginfo,
          v2exrescon, v2jucomp, v2juhccomp, v2juhcind, v2x_jucon,
-         v3eldirepr, v3elagepr, v2jupoatck, v2juncind) |> 
+         v3eldirepr, v3elagepr, v2jupoatck, v2juncind, v3juhcourt, v2x_rule) |> 
   mutate(country_name = if_else(country_name == "Czechia", "Czech Republic", country_name)) ->
   vdem2
 
@@ -173,9 +173,10 @@ joined_vdata |>
 # Add Barometer Data on Trust in Judiciary ----
 
 eurobarometer <- readRDS("../../barometer/data/eurobarometer_complete.rds")
-latinobarometer <- readRDS("../../barometer/data/latinobarometer_binary.rds")
+latinobarometer <- readRDS("../../barometer/data/latinobarometer_binary.rds") %>% 
+  mutate(trust_judiciary2 = if_else(trust_judiciary_org == 1, 1, 2))
 
-eurobarometer |> 
+eurobarometer %>% 
   group_by(country, year) |> 
   mutate(n = n(), 
          mean = mean(trust_judiciary, na.rm = TRUE),
@@ -685,6 +686,16 @@ ccpc_vdem |>
     TRUE ~ NA
     )) |> 
   select(-start, -everreplaced) ->
+  ccpc_vdem
+
+ccpc_vdem %>% 
+  mutate(region = case_when(
+    e_regiongeo %in% c(1:4) ~ "Europe",
+    e_regiongeo %in% c(5:9) ~ "Africa",
+    e_regiongeo %in% c(10:14) ~ "Asia",
+    e_regiongeo %in% c(15) ~ "Oceania",
+    e_regiongeo %in% c(16:19) ~ "North & Latinamerica"
+  )) ->
   ccpc_vdem
 
 # Save Data ----

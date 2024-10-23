@@ -20,14 +20,6 @@ library(estimatr)
 library(glue)
 
 
-## Graphics ----
-
-source("../../src/graphics.R")
-source("src/analysis_functions.R")
-theme_set(theme_regression)
-
-options(modelsummary_format_numeric_latex = "plain")
-
 # Data ----
 
 ccpc_vdem <- readRDS("data/ccpc_vdem.rds")
@@ -79,6 +71,7 @@ ccpc_vdem %>%
                          "Iceland",
                          "United Kingdom")) ->
   df
+
 
 # ANALYSIS JUDICIAL REPLACEMENT ----
 
@@ -140,6 +133,32 @@ ggsave(glue("results/graphs/ols_interaction_{depv}.pdf"),
 
 saveRDS(plot, glue("results/graphs/ols_interaction_{depv}.RDS"))
 
+theme_set(theme_bar)
+marg_effects(ols_robust, variable = "trust_share_low_linear_imp_mean_3") %>% 
+  mutate(ruth_populism = if_else(ruth_populism == 1, "Populist", "Non-Populist")) %>% 
+  ggplot(aes(x = ruth_populism,
+             y = estimate,
+             ymin = cilower,
+             ymax = ciupper,
+             linewidth = fct_rev(ci_size),
+             color = ruth_populism)) +
+  geom_hline(yintercept = 0, 
+             color = "#C95D63", 
+             linetype = "dashed") +
+  geom_pointrange(size = 1) +
+  scale_linewidth_manual(values = c(0.5, 1.25, 2),
+                         name = "CI-Level") +
+  scale_color_manual(values = c(color_dark, color_colorful)) +
+  guides(color = "none") +
+  labs(x = NULL,
+       y = "AME of Trust")
+
+
+ggsave(glue("results/graphs/ols_interaction_ametrust_{depv}.pdf"),
+       device = cairo_pdf,
+       width = 8,
+       height = 6)
+
 ### OLS BASE MODELS ----
 
 # only independent variables
@@ -185,7 +204,8 @@ modelsummary(list(baseols, baseols2, baseols3, baseols4, ols_robust),
              coef_omit = c("Intercept|country"),
              add_rows = olsrows,
              modelsummary_format_numeric_latex = "plain",
-             output = "latex"
+             output = "latex",
+             notes = list('+p < 0.1; *p < 0.05; **p > 0.01; ***p < 0.001')
              ) ->
   mainmodels
 
@@ -266,15 +286,18 @@ create_plot(meff,
 
 ggsave(glue("results/graphs/tripleinteraction_dynamic_{depv}.pdf"),
        device = cairo_pdf,
-       width = 7,
-       height = 5)
+       width = 10,
+       height = 6.2)
 
 
 ### DYNAMIC NO POPULIST INTERACTION ----
 
 dynamicv = c("changelast5",
              "changelast5*trust_share_low_linear_imp_mean_3")
+dynamic1 = c("changelast5")
 
+form <- gf({depv} ~ {indepv}+ {dynamicv1} + {contr} +  {fe})
+dols_main5 <- robust_ols(form)
 form <- gf({depv} ~ {indepv}+ {dynamicv} + {contr} +  {fe})
 dols <- robust_ols(form)
 summary(dols)
@@ -321,6 +344,7 @@ contr <- c("surplus",
            "changelast3",
             "regime_age",
             "coalition")
+dynamicv1 = c("changelast3")
 dynamicv = c("changelast3",
              "changelast3*trust_share_low_linear_imp_mean_3")
 
@@ -329,6 +353,8 @@ df |>
   na.omit() ->
   df_final
 
+form <- gf({depv} ~ {indepv}+ {dynamicv1} + {contr} +  {fe})
+dols_main3 <- robust_ols(form)
 form <- gf({depv} ~ {indepv}+ {dynamicv} + {contr} +  {fe})
 dols3 <- robust_ols(form)
 summary(dols3)
@@ -374,24 +400,26 @@ ggsave(glue("results/graphs/ols_interaction_onlychangelast.pdf_{depv}"),
 
 
 # add info on FE
-attr(olsrows, "position") <- 31
+attr(olsrows, "position") <- 27
 
 # create table
 modelsummary(list("Main Model" = ols_robust, 
-                  "Interaction" = dols, 
-                  "Triple Interaction" = dols_triple, 
-                  "Interaction" = dols, 
-                  "Triple Interaction" = dols_triple3),
+                  "5 Years" = dols_main5, 
+                  "& Interaction" = dols, 
+                  "3 Years" = dols_main3, 
+                  "& Interaction" = dols3),
              coef_rename = coef_names,
              estimate  = "{estimate}{stars}",
              statistic = c("conf.int"),
              coef_omit = c("Intercept|country"),
              add_rows = olsrows,
              output = "latex",
+             notes = list('+p < 0.1; *p < 0.05; **p > 0.01; ***p < 0.001'),
              modelsummary_format_numeric_latex = "plain"
 ) |> 
   add_header_above(c(" " = 1, "5 Years" = 3, "3 Years" = 2)) %>% 
-  sub("trust_share_low_linear_imp_mean_3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) ->
+  sub("trust_share_low_linear_imp_mean_3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) %>% 
+  kable_styling(font_size = 9) ->
   dynamicmodels
 
 writeLines(dynamicmodels, glue("results/tables/dynamicmodels_{depv}.tex"))
@@ -502,6 +530,12 @@ pred_data <- datagrid(judicial_independence_mean_mean_3 = levelsji,
 meff <- marg_effects(dols_ji,
                      "trust_share_low_linear_imp_mean_3")
 
+if (depv == "jud_replace_cont") {
+  title <- "Court Purges and Packing"
+} else if (depv == "v2jupoatck") {
+  title <- "Attacks on Judiciary"
+}
+
 meff |> 
   ggplot(aes(x = judicial_independence_mean_mean_3, 
              y = estimate)) +
@@ -511,20 +545,27 @@ meff |>
   geom_ribbon(aes(ymin = cilower, 
                   ymax = ciupper, 
                   alpha = ci_size),
-              fill = color_dark) +
+              fill = color_neutral) +
   geom_line(aes()) +
   geom_line() +
   labs(x = "Judicial Independence in Years Before",
        y = "AME of Trust",
-       caption = element_blank()) +
+       caption = element_blank(),
+       title = title) +
   scale_y_continuous(expand = c(0,0),
-                     limits = c(-10, 8.5),
-                     breaks = seq(-6, 8, by = 2))  +
+                     limits = c(-10, 10),
+                     breaks = seq(-5, 10, by = 5))  +
   scale_x_continuous(expand = c(0,0),
                      limits = c(-3,3)) +
   scale_alpha_manual(values = c(0.7, 0.5, 0.2),
                      name = "Confidence Intervall") +
-  coord_cartesian(clip = "off") 
+  coord_cartesian(clip = "off") +
+  theme(plot.title = element_text(size = textsize,
+                                  family = fontname,
+                                  hjust = 0,
+                                  margin = margin(b=30),
+                                  face = "bold"),
+        plot.title.position = "plot")
 
 ggsave(glue("results/graphs/dynamic_interaction_trustji_{depv}.pdf"),
        device = cairo_pdf,
@@ -547,8 +588,10 @@ modelsummary(list("Main Model" = ols_robust,
              coef_omit = c("Intercept|country"),
              add_rows = olsrows_4,
              output = "latex",
+             notes = list('+p < 0.1; *p < 0.05; **p > 0.01; ***p < 0.001'),
              modelsummary_format_numeric_latex = "plain"
 ) %>% 
+  kable_styling(font_size = 9) %>% 
   sub("trust_share_low_linear_imp_mean_3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) ->
   dynamicmodels_ji
 
@@ -669,14 +712,17 @@ modelsummary(list("Trust High" = model_list_interaction$ols_robust_high,
              coef_omit = c("Intercept|country"),
              add_rows = olsrows,
              output = "latex",
+             notes = list('+p < 0.1; *p < 0.05; **p > 0.01; ***p < 0.001'),
              modelsummary_format_numeric_latex = "plain"
 ) %>% 
+  kable_styling(font_size = 10) |> 
+  kable_classic_2() %>% 
   gsub("trust_share_low_linear_imp_mean_3", "Trust$_{\\bar{t}_{-1,-2,-3}}$", ., fixed = TRUE) ->
   models_indepchange
 
 writeLines(models_indepchange, glue("results/tables/models_indepchange_{depv}.tex"))
 
-attr(olsrows, "position") <- 25
+attr(olsrows, "position") <- 23
 
 modelsummary(list("Trust High" = model_list_nointeraction$ols_robust_high, 
                   "No Imputation" = model_list_nointeraction$ols_robust_noimp_w, 
@@ -688,9 +734,10 @@ modelsummary(list("Trust High" = model_list_nointeraction$ols_robust_high,
              statistic = c("conf.int"),
              coef_omit = c("Intercept|country"),
              add_rows = olsrows,
+             notes = list('+p < 0.1; *p < 0.05; **p > 0.01; ***p < 0.001'),
              output = "latex"
 ) |> 
-  kable_styling() |> 
+  kable_styling(font_size = 10) |> 
   kable_classic_2() ->
   models_indepchange2
 

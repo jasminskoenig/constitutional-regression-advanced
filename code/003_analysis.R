@@ -22,8 +22,8 @@ library(marginaleffects)
 source("src/analysischange_functions.R")
 
 ## Theme for Plots ----
-textsize <- 12
-source("src/graphics.R")
+textsize <- 28
+source("../../dissertation/src/graphics.R")
 theme_set(theme_regression)
 
 # Data ----
@@ -44,10 +44,19 @@ ccpc_vdem %>%
   group_by(country) |> 
   mutate(latin = if_else(e_regiongeo %in% c(17:18), 1, 0),
          year = as.factor(year),
-         lead_libdem = dplyr::lead(v2x_libdem, 1)) |> 
+         lead_libdem = dplyr::lead(v2x_libdem, 1),
+         changelastcon5 = if_else(jud_replace_con_sum_5 > 0, 0, 1),
+         changelastcon3 = if_else(jud_replace_con_sum_3 > 0, 0, 1),
+         changelast5 = if_else(jud_replace_sum_5 > 0, 1, 0),
+         changelast3 = if_else(jud_replace_sum_3 > 0, 1, 0),
+         surplus_size = if_else(gov_seatshare - 50 > 0, gov_seatshare - 50, 0)) |> 
   ungroup() |> 
   mutate(ruth_populism_lr = relevel(factor(ruth_populism_lr), ref = "Non-Populist")) ->
   df4
+
+df4 %>% 
+  filter(e_regiongeo > 16) ->
+  df_la
 
 # DISSERTATION MODELS ----
 
@@ -61,15 +70,104 @@ plmdata <- pdata.frame(
   )
 )
 
+# data Latinamerica
+
+plmdata_la <- pdata.frame(
+  df_la,
+  index = c(
+    "country",
+    "year"
+  )
+)
+
 # set coefficient names for tables 
 
 coef_names <- c(
-  "populismscore" = "Populism Score",
-  "evnt" = "Constitutional Change",
-  "moderator" = "Left-Wing",
-  "surplus" = "Surplus Seats"
+  "populismscore" = "Populism",
+  "evnt" = "Const. Change",
+  "moderator" = "Left-Right",
+  "surplus_size" = "Surplus",
+  "coalition" = "Coalition",
+  "gov_galtan_weighted" = "GAL-TAN"
 )
 
+# CONSTITUTIONAL CHANGE ----
+
+mcs <- reg_change(
+  1,
+  plmdata$gov_popul_weighted,
+  plmdata$gov_ideol_weighted
+)
+
+summary(mcs$`Surplus`)
+
+reg_change_jackknife("gov_popul_weighted",
+                     "gov_ideol_weighted") ->
+  data_change_jackknife
+
+data_change_jackknife %>% 
+  mutate(sig = if_else(p < 0.05, 1, 0)) %>% 
+  ggplot(aes(x = Estimate)) +
+  geom_histogram(color = "white") +
+  labs(y = NULL) +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(0,40),
+                     breaks = seq(10, 50, by = 10)) +
+  scale_x_continuous(limits = c(0.05, 0.11),
+                     expand = c(0,0))
+
+ggsave("results/graphs/jackknife_change.pdf",
+       width = 30,
+       height = 14,
+       unit = "cm",
+       device = cairo_pdf)
+
+## CHANGE IN EXECUTIVE POWER ----
+
+
+mexs <- reg_change(
+  1,
+  plmdata$gov_popul_weighted,
+  plmdata$gov_ideol_weighted,
+  dv = plmdata$diff_executive
+)
+
+# for some reason the plotting does not work when the regression was run in a function
+mex_surplus <-  plm(diff_executive ~ ruth_populism + surplus_size*ruth_populism + surplus_size + gov_ideol_weighted + coalition,
+                  model = "within",
+                  se = "HC1",
+                  data = plmdata)
+
+
+
+pred_data <- datagrid(ruth_populism = c("Non-Populist", "Populist"), 
+                      gov_ideol_weighted = 0,
+                      surplus_size = c(0,10,20,30),
+                      coalition = 1,
+                      model = mex_surplus) 
+
+theme_set(theme_bar)
+plot_predictions(mex_surplus, 
+                 condition = list("ruth_populism", "surplus_size" = c(0,10,20,30)),
+                 data = pred_data) +
+  geom_hline(yintercept = 0, 
+             color = "#C95D63", 
+             linetype = "dashed") +
+  labs(x = NULL,
+       y = "Predicted Change in\nRights for the Executive",
+       color = NULL) +
+  scale_color_manual(values = c(color_neutral, color_dark_verylight, color_dark_light, color_dark),
+                     labels = c("No Surplus", "10%", "20%", "30%"))
+
+ggsave("results/graphs/change_in_executive.pdf",
+       width = 30,
+       height = 14,
+       units = "cm",
+       device = cairo_pdf)
+
+theme_set(theme_base)
+
+# DEMOCRATIC QUALITY -----
 
 ## LEFT-WING & WEIGHTED ----
 
@@ -78,9 +176,9 @@ mlds <- reg_dem(
   plmdata$v2x_libdem,
   1,
   plmdata$gov_popul_weighted,
-  plmdata$gov_left
+  plmdata$gov_ideol_weighted
 )
-mld <- mlds$`Interaction and Controls`
+mld <- mlds$`Triple-Interaction`
 summary(mld)
 
 meff_mld <- calc_ame(mld)
@@ -91,17 +189,16 @@ plot_mld <- plot_ame(meff_mld,
 )
 plot_mld
 
-
 ### POLYARCHY ----
 
 mpos <- reg_dem(
   plmdata$v2x_polyarchy,
   1,
   plmdata$gov_popul_weighted,
-  plmdata$gov_left
+  plmdata$gov_ideol_weighted
 )
 
-mpo <- mpos$`Interaction and Controls`
+mpo <- mpos$`Triple-Interaction`
 summary(mpo)
 
 meff_mpo <- calc_ame(mpo)
@@ -117,10 +214,10 @@ mpas <- reg_dem(
   plmdata$v2x_partip,
   1,
   plmdata$gov_popul_weighted,
-  plmdata$gov_left
+  plmdata$gov_ideol_weighted
 )
 
-mpa <- mpas$`Interaction and Controls`
+mpa <- mpas$`Triple-Interaction`
 summary(mpa)
 
 meff_mpa <- calc_ame(mpa)
@@ -136,10 +233,11 @@ meds <- reg_dem(
   plmdata$v2x_egaldem,
   1,
   plmdata$gov_popul_weighted,
-  plmdata$gov_left
+  plmdata$gov_ideol_weighted
 )
 
-med <- meds$`Interaction and Controls`
+
+med <- meds$`Triple-Interaction`
 summary(med)
 
 meff_med <- calc_ame(med)
@@ -152,10 +250,10 @@ mcss <- reg_dem(
   plmdata$v2x_cspart,
   1,
   plmdata$gov_popul_weighted,
-  plmdata$gov_left
+  plmdata$gov_ideol_weighted
 )
 
-mcs <- mcss$`Interaction and Controls`
+mcs <- mcss$`Triple-Interaction`
 summary(mcs)
 
 meff_mcs <- calc_ame(mcs)
@@ -174,7 +272,7 @@ plot_mcs
 #   plmdata$gov_left
 # )
 # 
-# mdd <- mdds$`Interaction and Controls`
+# mdd <- mdds$`Triple-Interaction`
 # summary(mdd)
 # 
 # meff_mdd <- calc_ame(mdd)
@@ -193,12 +291,26 @@ rows <- data.frame(
   "(5)" = "Yes"
 )
 
+controlmodellist <- list(mlds$Interaction, mpos$Interaction, mpas$Interaction, meds$Interaction, mcss$Interaction)
+
+table_controlmodels <- create_regressiontable(
+  controlmodellist,
+  add_row = TRUE,
+  row_position = 13,
+  row_data = rows,
+  latex = TRUE
+)
+
+writeLines(table_controlmodels, "results/tables/constitutionalchange_interaction.tex")
+
+# without interaction
+
 mainmodellist <- list(mld, mpo, mpa, med, mcs)
 
 table_mainmodels <- create_regressiontable(
   mainmodellist,
   add_row = TRUE,
-  row_position = 17,
+  row_position = 19,
   row_data = rows,
   latex = TRUE
 )
@@ -207,63 +319,83 @@ writeLines(table_mainmodels, "results/tables/constitutionalchange_main.tex")
 
 ### PLOT MAIN TEXT ----
 
-plot_mld +
-  theme(axis.text.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.ticks.x = element_blank()) ->
-  plot1
 
-plot_med +
-  labs(y = element_blank(),
-       x = element_blank()) +
-  theme(axis.text.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.ticks.x = element_blank(),
-        strip.text = element_blank()) ->
-  plot2
+main_plots <- remove_strip_multiple(list(plot_mld, plot_med, plot_mpo))
 
-plot_mpo +
-  labs(y = element_blank()) +
-  theme(axis.title.y = element_blank(),
-        axis.ticks.x = element_blank(),
-        strip.text = element_blank()) ->
-  plot3
 
-plot1 + plot2 + plot3 + plot_layout(ncol = 1,
-                                    nrow = 4,
-                                    heights = c(0.3,1,1,1),
-                                    guides = 'collect')
+main_plots[[1]] + main_plots[[2]] + main_plots[[3]] + plot_layout(ncol = 1,
+                                             nrow = 3,
+                                             heights = c(1,1,1),
+                                             guides = 'collect',
+                                             axes = 'collect',
+                                             axis_titles = 'collect') 
 
 ggsave("results/graphs/change_effect.pdf",
        device = cairo_pdf,
-       width = 7,
-       height = 10)
+       width = 20,
+       height = 22)
 
 ### PLOT APPENDIX ----
 
-plot_mpa +
-  theme(axis.text.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.ticks.x = element_blank()) ->
-  plot4
 
-plot_mcs +
-  labs(y = element_blank()) +
-  theme(axis.title.y = element_blank(),
-        axis.ticks.x = element_blank(),
-        strip.text = element_blank()) ->
-  plot5
+plot_mpa <- remove_strip(plot_mpa)
 
-plot4 + plot5 +  plot_layout(ncol = 1,
-                             nrow = 3,
-                             heights = c(0.3,1,1),
-                             guides = 'collect')
+plot_mcs + plot_mpa + plot_layout(ncol = 1,
+                                  nrow = 2,
+                                  guides = 'collect',
+                                  axes = 'collect',
+                                  axis_titles = 'collect') 
 
 ggsave("results/graphs/change_effect_appendix.pdf",
        device = cairo_pdf,
-       width = 6,
-       height = 8)
+       width = 20,
+       height = 12)
+
+### REGION ----
+
+textsize <- 12
+source("../../dissertation/src/graphics.R")
+theme_set(theme_regression)
+
+EUmodellist <- list(mlds$GALTAN, mpos$GALTAN, mpas$GALTAN, meds$GALTAN, mcss$GALTAN)
+modelnames <- create_names() %>% 
+  pull(easy)
+plots_EU <- map2(EUmodellist,
+                 modelnames,
+                 ~get_EU_plot(.x,
+                              .y))
+
+plots_EU <- remove_strip_multiple(plots_EU)
+
+plots_EU[[1]] + plots_EU[[2]]+  plots_EU[[3]] + plots_EU[[4]] + plots_EU[[5]] +
+  plot_layout(ncol = 1,
+              nrow = 5,
+              guides = 'collect',
+              axis_titles = "collect",
+              axes = "collect")
+ggsave("results/graphs/constchange_eu.pdf",
+       width = 21, 
+       height = 29,
+       units = "cm",
+       device = cairo_pdf)
+
+Latinmodellist <- list(mlds$Latinamerica, mpos$Latinamerica, mpas$Latinamerica, meds$Latinamerica, mcss$Latinamerica)
+margeff_Latin <- map(Latinmodellist , ~calc_ame(.))
+
+plots_latin <- pmap(list(margeff_Latin, Latinmodellist, modelnames), plot_ame)
+plots_latin <- remove_strip_multiple(plots_latin)
+plots_latin[[1]] + plots_latin[[2]]+  plots_latin[[3]] + plots_latin[[4]] + plots_latin[[5]] +
+  plot_layout(ncol = 1,
+              nrow = 5,
+              guides = 'collect',
+              axis_titles = "collect",
+              axes = "collect")
+
+ggsave("results/graphs/constchange_la.pdf",
+       width = 21, 
+       height = 29,
+       units = "cm",
+       device = cairo_pdf)
 
 ### CASE TABLE ----
 
@@ -297,6 +429,7 @@ mld$model |>
     fns =  list(label = "Total", fn = "sum"),
     side = "bottom"
   ) |>
+  tab_options(table.font.size = 12) %>% 
   gt::as_latex() ->
   populist_changes
 
@@ -310,34 +443,46 @@ democracytypes <- demtypes$long
 jackknife_plots <- map(democracytypes, ~ plot_jackknife(.,
                                         1,
                                         "gov_popul_weighted",
-                                        "gov_left"))
+                                        "gov_ideol_weighted"))
 
 jackknife_plots[[1]] + jackknife_plots[[2]] + jackknife_plots[[4]] + 
-  plot_layout(guides = "collect") ->
+  plot_layout(guides = "collect",
+              axis_titles = "collect",
+              axes = "collect") ->
   jackknife_appendix
 
 ggsave("results/graphs/jackknife_plots.pdf",
        device = cairo_pdf,
        width = 10,
-       height = 7)
+       height = 5)
 
-### JACKKNIFE LAGS ----
+jackknife_plots[[3]] + jackknife_plots[[5]]  + 
+  plot_layout(guides = "collect",
+              axis_titles = "collect") ->
+  jackknife_appendix2
+
+ggsave("results/graphs/jackknife_plots2.pdf",
+       device = cairo_pdf,
+       width = 10,
+       height = 5)
+
+### JACKKNIFE LEADS ----
 
 jackknife_leads <- map_dfr(democracytypes, ~ reg_dem_jackknifelead(.,
                                      1,
                                      "gov_popul_weighted",
-                                     "gov_left")) 
+                                     "gov_ideol_weighted")) 
 
 names <- create_names()
 
 jackknife_leads |> 
   rename("conf_low" = 3,
-         "conf_high" = 4) |> 
+         "conf_high" = 4) %>% 
   mutate(across(c(conf_low, conf_high, coefjack), ~ round(., 2)),
          ci = paste0("[", conf_low, ", ", conf_high, "]"),
-         Coefficient = as.character(coefjack)) |> 
+         Coefficient = as.character(coefjack)) %>% 
   rename("Lead" = "country") |>
-  select(-democracytype, -conf_low, -conf_high, -coefjack) |> 
+  select(-democracytype, -conf_low, -conf_high, -coefjack) |>
   pivot_longer(cols = c(Coefficient, ci),
                names_to = "type",
                values_to = "value") |> 
@@ -380,20 +525,40 @@ models_lagged <- map(democracytypes, ~reg_main(plmdata[[.]],
 coef_names <- c(
   "populismscore" = "Populism",
   "evnt" = "Const. Change",
-  
-## XXX still need a solution here!
-  "moderator" = "Dem. Score (mean lag 1:3)",
+  "moderator" = "Dem.Scorelagged",
   "surplus" = "Surplus Seats"
 )
 
-table_dynamicmodels <- create_regressiontable(models_lagged,
+table_dynamicmodels <- create_regressiontable(
+  models_lagged,
   add_row = TRUE,
-  row_position = 17,
+  row_position = 19,
   row_data = rows,
   latex = TRUE
 )
 
 writeLines(table_dynamicmodels, "results/tables/constitutionalchange_dynamic.tex")
+
+
+modelnames <- create_names() %>% 
+  pull(easy)
+lagged_ame <- map(models_lagged,
+                 ~calc_ame(.x))
+plots_lagged <- pmap(list(lagged_ame, models_lagged, modelnames, rep("democracylevel", 5)), plot_ame)
+plots_lagged <- remove_strip_multiple(plots_lagged)
+
+plots_lagged[[1]] + plots_lagged[[2]]+  plots_lagged[[3]] + plots_lagged[[4]] + plots_lagged[[5]] +
+  plot_layout(ncol = 1,
+              nrow = 5,
+              guides = 'collect',
+              axis_titles = "collect",
+              axes = "collect")
+
+ggsave("results/graphs/constchange_dynamic.pdf",
+       width = 21, 
+       height = 29,
+       units = "cm",
+       device = cairo_pdf)
 
 
 ## LEFT-WING & RUTH ----
@@ -412,7 +577,7 @@ coef_names <- c(
 
 table_ruthmodels <- create_regressiontable(models_ruth,
                                               add_row = TRUE,
-                                              row_position = 17,
+                                              row_position = 15,
                                               row_data = rows,
                                            latex = TRUE
 )
@@ -711,7 +876,7 @@ models_libdem = reg_dem(df4$v2x_libdem, 2, df4$gov_popul_weighted, df4$gov_left)
 
 reg_evnt_table_dem(models_libdem)
 
-model_libdem <- models_libdem$`Interaction and Controls`
+model_libdem <- models_libdem$`Triple-Interaction`
 
 levels_popul <- reg_mod_levels(model_libdem, df4$gov_popul_weighted)
 levels_govleft <- reg_mod_levels(model_libdem, df4$gov_left)
@@ -750,7 +915,7 @@ models_cspart = reg_dem(df4$v2x_cspart, 1, df4$gov_popul_weighted, df4$gov_left)
 
 reg_evnt_table_dem(models_cspart)
 
-model_cspart <- models_cspart$`Interaction and Controls`
+model_cspart <- models_cspart$`Triple-Interaction`
 
 levels_cspart <- reg_mod_levels(model_cspart, df4$gov_popul_weighted)
 levels_gov_left <- reg_mod_levels(model_cspart, df4$gov_left)
@@ -767,7 +932,7 @@ reg_plot(effects_cspart)
 
 models_egaldem = reg_dem(df4$v2x_egaldem, 1, df4$gov_popul_weighted, df4$gov_left)
 reg_evnt_table_dem(models_egaldem)
-model_egaldem <- models_egaldem$`Interaction and Controls`
+model_egaldem <- models_egaldem$`Triple-Interaction`
 
 levels_egaldem <- reg_mod_levels(model_egaldem, df4$gov_popul_weighted)
 levels_egaldem <- reg_mod_levels(model_egaldem, df4$gov_left)
@@ -784,7 +949,7 @@ reg_plot(effects_egaldem)
 
 models_polyarchy = reg_dem(df4$v2x_polyarchy, 1, df4$gov_popul_weighted, df4$gov_left)
 reg_evnt_table_dem(models_polyarchy)
-model_polyarchy <- models_polyarchy$`Interaction and Controls`
+model_polyarchy <- models_polyarchy$`Triple-Interaction`
 
 levels_polyarchy <- reg_mod_levels(model_polyarchy, df4$gov_popul_weighted)
 levels_polyarchy <- reg_mod_levels(model_polyarchy, df4$gov_left)
@@ -807,7 +972,7 @@ df4 |>
 
 models_compliance = reg_dem(df4$v2juhccomp, 1, df4$gov_popul_weighted, df4$gov_left)
 
-models_compliance <- models_compliance$`Interaction and Controls`
+models_compliance <- models_compliance$`Triple-Interaction`
 
 levels_compliance <- reg_mod_levels(model_compliance, df4$gov_popul_weighted)
 levels_gov_left <- reg_mod_levels(model_pcompliance, df4$gov_left)
@@ -823,7 +988,7 @@ reg_plot(effects_compliance)
 
 models_independence = reg_dem(df4$v2juhcind, 1, df4$gov_popul_weighted, df4$gov_left)
 
-models_independence <- models_independence$`Interaction and Controls`
+models_independence <- models_independence$`Triple-Interaction`
 
 levels_independence <- reg_mod_levels(model_independence, df4$gov_popul_weighted)
 levels_gov_left <- reg_mod_levels(model_independence, df4$gov_left)
@@ -836,16 +1001,6 @@ effects_independence <- reg_effects_multiinteraction(models_independence,
 reg_plot(effects_independence)
 
 ## Ruth Populism Models ----
-
-### Test ----
-
-df4 |> 
-  mutate(ruth_populism_lr = relevel(factor(ruth_populism_lr), ref="Non-Populist")) ->
-  df4
-
-test <- lmer(lead(v2x_egaldem, 1) ~ ruth_populism_lr*evnt +  surplus + presidential + (1 | country), data = df4)  
-stargazer(test)
-
 
 ### Liberal Democracy by Weighted Populism & Left-Wing ----
 
@@ -885,7 +1040,7 @@ reg_plot(effects_partip)
 
 models_cspart = reg_dem(df4$v2x_cspart, 1, df4$ruth_populism, df4$gov_left)
 
-model_cspart <- models_cspart$`Interaction and Controls`
+model_cspart <- models_cspart$`Triple-Interaction`
 stargazer(model_cspart, type = "text")
 
 levels_cspart <- reg_mod_levels(model_cspart, df4$ruth_populism)
@@ -902,7 +1057,7 @@ reg_plot(effects_cspart)
 
 models_egaldem = reg_dem(df4$v2x_egaldem, 1, df4$ruth_populism, df4$gov_left)
 
-model_egaldem <- models_egaldem$`Interaction and Controls`
+model_egaldem <- models_egaldem$`Triple-Interaction`
 stargazer(model_egaldem, type = "text")
 
 levels_egaldem <- reg_mod_levels(model_egaldem, df4$ruth_populism)
@@ -919,7 +1074,7 @@ reg_plot(effects_egaldem)
 
 models_polyarchy = reg_dem(df4$v2x_polyarchy, 1, df4$ruth_populism, df4$gov_left)
 
-model_polyarchy <- models_polyarchy$`Interaction and Controls`
+model_polyarchy <- models_polyarchy$`Triple-Interaction`
 stargazer(model_polyarchy, type = "text")
 
 levels_polyarchy <- reg_mod_levels(model_polyarchy, df4$ruth_populism)
@@ -977,3 +1132,4 @@ effects_const_res <- reg_tidy_effects(model_const_res,
                                       df4$gov_popul_weighted, df4$gov_left, 
                                       "Right", "Left")
 reg_plot(effects_const_res)
+

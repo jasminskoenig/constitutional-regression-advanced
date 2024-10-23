@@ -1,13 +1,73 @@
-\blandscape
+## Appendix Constitutional Changes
 
-![Average marginal effect of constitutional change condititoned by government weighted populism score and ideology.](results/graphs/change_effect_appendix.pdf){#fig-interactionapp fig-align="center"}
+{{< pagebreak >}}
+
+```{r}
+#| output: asis 
+#| echo: false 
+#| warning: false 
+#| label: tbl-populistchanges 
+#| tbl-cap: Constitutional changes under populist governments (weighted populism score > 0.5)  
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/populistchanges.tex")  
+cat("\\scriptsize")
+# Print the content as raw LaTeX 
+cat(tex_content, sep="\n")
+```
+
+\blandscape
 
 ```{r}
 #| output: asis
 #| echo: false
 #| warning: false
+#| label: tbl-resultschange_EU
+#| tbl-cap: Regression results for likelihood of constitutional change
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/constitutionalchangelikelihood_EU_evnt.tex")
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-executive
+#| tbl-cap: Regression models for changes in rights of the executive
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/constitutionalchangelikelihood_diff_executive.tex")
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+
+```
+
+\elandscape
+
+![Average marginal effect of constitutional change condititoned by government weighted populism score and ideology (based on table @tbl-results).](results/graphs/change_effect_appendix.pdf){#fig-interactionapp fig-align="center" fig-pos="H" fig-scap="Average marginal effect of constitutional change condititoned by government weighted populism score and ideology"}
+
+![Coefficients of interaction effect of jackknifed models for @tbl-results, model 3.](results/graphs/jackknife_change.pdf){#fig-jackknifechange fig-pos="H" fig-scap="Coefficients of interaction effect of jackknifed models" fig-align="center" width="90%"}
+
+![Predicted change in rights for the executive conditioned by ideology and populism based on @tbl-executive, model 4.](results/graphs/change_in_executive.pdf){#fig-executive fig-pos="H" fig-scap="Predicted change in rights for the executive conditioned by ideology and populism score" fig-align="center" width="90%"}
+
+```{=tex}
+\blandscape
+\renewcommand{\arraystretch}{0.5}
+\setlength{\tabcolsep}{2pt}
+```
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
 #| label: tbl-libdem
-#| tbl-cap: Full Regression Models on Liberal Democracy
+#| tbl-cap: Full regression models on liberal democracy
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_v2x_libdem.tex")
@@ -17,12 +77,16 @@ cat(tex_content, sep="\n")
 
 ```
 
+```{=tex}
+\renewcommand{\arraystretch}{0.5}
+\setlength{\tabcolsep}{2pt}
+```
 ```{r}
 #| output: asis
 #| echo: false
 #| warning: false
 #| label: tbl-polyarchy
-#| tbl-cap: Full Regression Models on Polyarchy
+#| tbl-cap: Full regression models on polyarchy
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_v2x_polyarchy.tex")
@@ -32,12 +96,16 @@ cat(tex_content, sep="\n")
 
 ```
 
+```{=tex}
+\renewcommand{\arraystretch}{0.5}
+\setlength{\tabcolsep}{2pt}
+```
 ```{r}
 #| output: asis
 #| echo: false
 #| warning: false
 #| label: tbl-partip
-#| tbl-cap: Full Regression Models on Participation
+#| tbl-cap: Full regression models on participation
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_v2x_partip.tex")
@@ -47,12 +115,16 @@ cat(tex_content, sep="\n")
 
 ```
 
+```{=tex}
+\renewcommand{\arraystretch}{0.5}
+\setlength{\tabcolsep}{2pt}
+```
 ```{r}
 #| output: asis
 #| echo: false
 #| warning: false
 #| label: tbl-egaldem
-#| tbl-cap: Full Regression Models on Egalitarian Democracy
+#| tbl-cap: Full regression models on polyarchy
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_v2x_egaldem.tex")
@@ -62,15 +134,36 @@ cat(tex_content, sep="\n")
 
 ```
 
+```{=tex}
+\renewcommand{\arraystretch}{0.5}
+\setlength{\tabcolsep}{2pt}
+```
+```{r}
+#| output: asis
+#| warning: false
+#| echo: false
+#| label: tbl-cspart
+#| tbl-cap: Full regression models on civil society
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/constitutionalchange_v2x_cspart.tex")
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+\elandscape
+
 ```{r}
 #| output: asis
 #| echo: false
 #| warning: false
-#| label: tbl-cspart
-#| tbl-cap: Full Regression Models on Civil Society
+#| label: tbl-libdem_sep
+#| tbl-cap: Separate regression models on liberal democracy for Europe and Latin America and surplus model
 
 # Read the .tex file content
-tex_content <- readLines("results/tables/constitutionalchange_v2x_cspart.tex")
+tex_content <- readLines("results/tables/constitutionalchange_alternative_v2x_libdem.tex")
 
 # Print the content as raw LaTeX
 cat(tex_content, sep="\n")
@@ -81,8 +174,75 @@ cat(tex_content, sep="\n")
 #| output: asis
 #| echo: false
 #| warning: false
+#| label: tbl-polyarchy_sep
+#| tbl-cap: Separate regression models on polyarchy for Europe and Latin America  and surplus model
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/constitutionalchange_alternative_v2x_polyarchy.tex")
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-partip_sep
+#| tbl-cap: Separate regression models on participation for Europe and Latin America  and surplus model
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/constitutionalchange_alternative_v2x_partip.tex")
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
+#| label: tbl-egaldem_sep
+#| tbl-cap: Separate regression models on egalitarian democracy for Europe and Latin America and surplus model
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/constitutionalchange_alternative_v2x_egaldem.tex")
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+
+```
+
+```{r}
+#| output: asis
+#| warning: false
+#| echo: false
+#| label: tbl-cspart_sep
+#| tbl-cap: Separate regression models on civil society for Europe and Latin America and surplus model
+
+# Read the .tex file content
+tex_content <- readLines("results/tables/constitutionalchange_alternative_v2x_cspart.tex")
+
+# Print the content as raw LaTeX
+cat(tex_content, sep="\n")
+```
+
+![Average marginal effect of constitutional change condititoned by government weighted populism score and ideology (GAL-TAN) for Europe, based @tbl-libdem_sep to @tbl-cspart_sep, model 3.](results/graphs/constchange_eu.pdf){#fig-eu fig-pos="H" fig-scap="Average marginal effect of constitutional change condititoned by government weighted populism score and ideology (GAL-TAN)" fig-align="center"}
+
+![Average marginal effect of constitutional change condititoned by government weighted populism score and ideology for Latin America, based @tbl-libdem_sep to @tbl-cspart_sep, model 2.](results/graphs/constchange_la.pdf){#fig-la fig-pos="H" fig-scap="Average marginal effect of constitutional change condititoned by government weighted populism score and ideology for Latin America" fig-align="center"}
+
+```{=tex}
+\blandscape
+\renewcommand{\arraystretch}{0.5}
+```
+```{r}
+#| output: asis
+#| echo: false
+#| warning: false
 #| label: tbl-dynamic
-#| tbl-cap: Dynamic Regression Models 
+#| tbl-cap: Dynamic regression models 
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_dynamic.tex")
@@ -93,12 +253,18 @@ cat(tex_content, sep="\n")
 
 ```
 
+\elandscape
+
+![Average marginal effect of constitutional change conditioned by government weighted populism score and lag of democratic quality before, based @tbl-dynamic.](results/graphs/constchange_dynamic.pdf){#fig-dynamic fig-pos="H" fig-scap="Average marginal effect of constitutional change conditioned by government weighted populism score and lag of democratic quality" fig-align="center"}
+
+\blandscape
+
 ```{r}
 #| output: asis
 #| echo: false
 #| warning: false
 #| label: tbl-ruth
-#| tbl-cap: Regression Models with Ruth-Lovell & Grahn Populism Coding
+#| tbl-cap: Regression models with Ruth-Lovell & Grahn populism coding
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_ruth.tex")
@@ -107,12 +273,14 @@ tex_content <- readLines("results/tables/constitutionalchange_ruth.tex")
 cat(tex_content, sep="\n")
 ```
 
+\renewcommand{\arraystretch}{0.5}
+
 ```{r}
 #| output: asis
 #| echo: false
 #| warning: false
 #| label: tbl-leadlibdem
-#| tbl-cap: Regression Models on Liberal Democracy for Different Leads
+#| tbl-cap: Regression models on liberal democracy for different leads
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_lead_v2x_libdem.tex")
@@ -126,7 +294,7 @@ cat(tex_content, sep="\n")
 #| echo: false
 #| warning: false
 #| label: tbl-leadpartip
-#| tbl-cap: Regression Models on Participation for Different Leads
+#| tbl-cap: Regression models on participation for different leads
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_lead_v2x_partip.tex")
@@ -140,7 +308,7 @@ cat(tex_content, sep="\n")
 #| echo: false
 #| warning: false
 #| label: tbl-leadpolyarchy
-#| tbl-cap: Regression Models on Polyarchy for Different Leads
+#| tbl-cap: Regression models on polyarchy for different leads
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_lead_v2x_polyarchy.tex")
@@ -154,7 +322,7 @@ cat(tex_content, sep="\n")
 #| echo: false
 #| warning: false
 #| label: tbl-leadcspart
-#| tbl-cap: Regression Models on Civil Society for Different Leads
+#| tbl-cap: Regression models on civil society for different leads
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_lead_v2x_cspart.tex")
@@ -168,7 +336,7 @@ cat(tex_content, sep="\n")
 #| echo: false
 #| warning: false
 #| label: tbl-leadegaldem
-#| tbl-cap: Regression Models on Egalitarian Democracy for Different Leads
+#| tbl-cap: Regression models on egalitarian democracy for different leads
 
 # Read the .tex file content
 tex_content <- readLines("results/tables/constitutionalchange_lead_v2x_egaldem.tex")
@@ -177,6 +345,16 @@ tex_content <- readLines("results/tables/constitutionalchange_lead_v2x_egaldem.t
 cat(tex_content, sep="\n")
 ```
 
-![Coefficients of Triple-Interaction Effekt in Jackknife-Model.](results/graphs/jackknife_plots.pdf){fig-align="center"}
+\elandscape
+
+\blandscape
+
+![Coefficients of triple-Interaction effect in jackknife-model.](results/graphs/jackknife_plots.pdf){#fig-jackknife1 fig-align="center" fig-pos="H"}
+
+![Coefficients of triple-interaction effect in jackknife-model.](results/graphs/jackknife_plots2.pdf){#fig-jackknife2 fig-align="center" fig-pos="H"}
 
 \elandscape
+
+# References
+
+\normalsize

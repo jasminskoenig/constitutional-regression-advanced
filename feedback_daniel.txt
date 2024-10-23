@@ -1,0 +1,22 @@
+Zusammenhang
+
+DQ (at time -1): 
+Nicht nur der Zustand davor relevant, sondern über Zeit auch (aber auf jeden Fall der davor)
+
+Windowed time average for lagged variables
+
+Endogeneous covariance
+
+
+
+Keine Fixed Effects
+- Populismus hat einen Effekt auf DQ (nicht die Veränderung in Populismus) (+0.1 in Deutschland ist nicht gleich 0.1 in Bolivien)
+- Abweichung vom Durchschnittswert
+
+Random Slope:
+- Random Slope für Populismus
+- Änderung von Populismus im hohen Bereich größer?
+- Evtl random slope für sch
+
+Random Intercepts:
+- Keine Intercepts für Jahr

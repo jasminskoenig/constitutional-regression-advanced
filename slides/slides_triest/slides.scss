@@ -1,0 +1,132 @@
+/*-- scss:defaults --*/
+  
+  // fonts
+@import url('https://fonts.googleapis.com/css?family=Rajdhani&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Source+Code+Pro&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap');
+
+
+$font-family-sans-serif: "Rajdhani", sans-serif;
+$font-family-monospace: "Source Code Pro", monospace;
+$theme-rose: #AF929D;
+$theme-blue: #689295;
+$theme-silver: #CEC3C1;
+$theme-darkslate: #263f3f;
+$presentation-title-slide-text-color: $theme-darkslate;
+  $code-block-font-size: 0.7em;
+$presentation-h2-font-size: 1.4em !default;
+$presentation-font-size-root: 30px !default;
+$presentation-heading-color: $theme-darkslate !default;
+$link-color: $theme-rose;
+$code-color: $theme-blue;
+
+  
+  /*-- scss:rules --*/
+  
+  details>summary {
+    font-size: 0.75em;
+  }
+
+#title-slide .subtitle {
+color: #464a53;
+  font-weight: bold;
+text-align: center;
+font-size: 25px
+}
+
+#title-slide .title {
+text-align: center;
+color: #464a53;
+  font-size: 35px
+}
+
+#title-slide .quarto-title-author {
+text-align: center;
+color: #464a53;
+  font-size: 30px;
+}
+
+#title-slide .institute {
+text-align: center;
+color: #464a53;
+  font-size: 25px;
+}
+
+
+.rose {
+  color: $theme-rose;
+}
+
+.blue {
+  color: $theme-blue;
+}
+
+.small {
+  font-size: 0.75em;
+}
+
+.smallest {
+  font-size: 0.5em;
+}
+
+.large {
+  font-size: 1.5em;
+}
+
+.reveal .hand {
+  font-family: 'Gochi Hand', cursive;
+  font-size: 1.2em
+}
+
+
+.reveal .slide .task {
+  padding-right: 10px;
+  padding-left: 10px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  margin-bottom: 6px;
+  margin-top: 6px;
+  border-left: solid 5px #263f3f;
+  background-color: #AF929D;
+}
+
+.fragment .highlight-red {
+  color: #AF929D;
+}
+
+.scrolling {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.reveal .slide .quote {
+  padding-right: 10px;
+  padding-left: 10px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  margin-bottom: 6px;
+  margin-top: 6px;
+  border-left: solid 5px #263f3f;
+  background-color: #CEC3C1;
+}
+
+.theme-section1 {
+  &:is(.slide-background) {
+    background-color: $theme-darkslate;
+  }
+  
+  .reveal h1 {
+  color: $theme-silver;
+  
+}
+
+}
+
+h1 {
+  color: $theme-silver;
+  font-size: 1em;
+}
+
+.caption{
+   text-align: center;
+}

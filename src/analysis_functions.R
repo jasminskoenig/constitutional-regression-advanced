@@ -1,4 +1,4 @@
-source("../../src/graphics.R")
+source("../../dissertation/src/graphics.R")
 
 set_basevars <- function(){
   
@@ -24,6 +24,11 @@ create_coefnames <- function() {
     "ruth_populism" = "Populist",
     "trust_share_low_linear_imp_mean_3" = "Trustmean3",
     "trust_hat" = "Trûst",
+    "lagged_trust_share_low_linear_imp_1" = "Trust1",
+    "trust_share_low_linear_imp_mean_5" = "Trustmean5",
+    "trust_share_low_mean_3" = "Trustmean3",
+    "trust_share_low_imp_lastv_mean_3" ="Trustmean3",
+    "trust_share_high_linear_imp_mean_3" = "Trusthighmean3",
     "executive" = "Executive Power",
     "surplus" = "Surplus Seats",
     "presidential" = "Presidential System",
@@ -34,13 +39,7 @@ create_coefnames <- function() {
     "regime_age" = "Democracy Age",
     "coalition" = "Coalition Gov.",
     "trust_hat × ruth_populism" = "Trûst x Populist",
-    "judicial_independence_mean_mean_3" = "Judicial Independence",
-    "lagged_trust_share_low_linear_imp_1" = "Trust1",
-    "trust_share_low_linear_imp_mean_5" = "Trustmean5",
-    "trust_share_low_mean_3" = "Trustmean3",
-    "trust_share_low_imp_lastv_mean_3" ="Trustmean3",
-    "trust_share_high_linear_imp_mean_3" = "Trusthighmean3"
-    
+    "judicial_independence_mean_mean_3" = "Judicial Independence"
   )
 }
 
@@ -135,7 +134,7 @@ create_plot <- function(amedata,
     geom_ribbon(aes(ymin = cilower, 
                     ymax = ciupper, 
                     alpha = ci_size), 
-                fill = color_dark) +
+                fill = color_neutral) +
     geom_line(aes()) +
     geom_line() +
     labs(x = "Trust in Judiciary",

@@ -1,0 +1,146 @@
+country_name,year,leader_name,extremism,populism
+Poland,2005,Marcinkiewicz,Moderate/None,Populist
+Poland,2006,Kaczynski,Far-Right,Populist
+Poland,2015,Szydlo,Moderate/None,Populist
+Poland,2016,Szydlo,Far-Right,Populist
+Poland,2017,Morawiecki,Far-Right,Populist
+Poland,2018,Morawiecki,Far-Right,Populist
+Bolivia,2006,Evo Morales,Moderate/None,Populist
+Bolivia,2007,Evo Morales,Far-Left,Populist
+Bolivia,2008,Evo Morales,Far-Left,Populist
+Bolivia,2009,Evo Morales,Far-Left,Populist
+Bolivia,2010,Evo Morales,Far-Left,Populist
+Bolivia,2011,Evo Morales,Far-Left,Populist
+Bolivia,2012,Evo Morales,Far-Left,Populist
+Bolivia,2013,Evo Morales,Far-Left,Populist
+Bolivia,2014,Evo Morales,Far-Left,Populist
+Bolivia,2015,Evo Morales,Far-Left,Populist
+Bolivia,2016,Evo Morales,Far-Left,Populist
+Bolivia,2017,Evo Morales,Far-Left,Populist
+Bolivia,2018,Evo Morales,Far-Left,Populist
+Peru,1994,Alberto Fujimori,NA,Populist
+Peru,1995,Alberto Fujimori,Moderate/None,Populist
+Peru,1996,Alberto Fujimori,Moderate/None,Populist
+Peru,1997,Alberto Fujimori,Moderate/None,Populist
+Peru,1998,Alberto Fujimori,Moderate/None,Populist
+Peru,1999,Alberto Fujimori,Moderate/None,Populist
+Peru,2006,Alan García,Moderate/None,Populist
+Peru,2007,Alan García,Moderate/None,Populist
+Peru,2008,Alan García,Moderate/None,Populist
+Peru,2009,Alan García,Moderate/None,Populist
+Peru,2010,Alan García,Moderate/None,Populist
+Peru,2011,Ollanta Humala,Moderate/None,Populist
+Peru,2012,Ollanta Humala,Far-Left,Populist
+Peru,2013,Ollanta Humala,Far-Left,Populist
+Peru,2014,Ollanta Humala,Far-Left,Populist
+Peru,2015,Ollanta Humala,Far-Left,Populist
+Argentina,1994,Carlos Menem,NA,Populist
+Argentina,1995,Carlos Menem,Moderate/None,Populist
+Argentina,1996,Carlos Menem,Moderate/None,Populist
+Argentina,1997,Carlos Menem,Moderate/None,Populist
+Argentina,1998,Carlos Menem,Moderate/None,Populist
+Argentina,2003,Néstor Kirchner,Moderate/None,Populist
+Argentina,2004,Néstor Kirchner,Moderate/None,Populist
+Argentina,2005,Néstor Kirchner,Moderate/None,Populist
+Argentina,2006,Néstor Kirchner,Moderate/None,Populist
+Venezuela,1994,Rafael Caldera,NA,Populist
+Venezuela,1995,Rafael Caldera,Moderate/None,Populist
+Venezuela,1996,Rafael Caldera,Moderate/None,Populist
+Venezuela,1997,Rafael Caldera,Moderate/None,Populist
+Venezuela,1998,Rafael Caldera,Moderate/None,Populist
+Venezuela,1999,Hugo Chávez,Moderate/None,Populist
+Venezuela,2000,Hugo Chávez,Far-Left,Populist
+Venezuela,2001,Hugo Chávez,Far-Left,Populist
+Venezuela,2002,Hugo Chávez,Far-Left,Populist
+Venezuela,2003,Hugo Chávez,Far-Left,Populist
+Venezuela,2004,Hugo Chávez,Far-Left,Populist
+Venezuela,2005,Hugo Chávez,Far-Left,Populist
+Venezuela,2006,Hugo Chávez,Far-Left,Populist
+Venezuela,2007,Hugo Chávez,Far-Left,Populist
+Venezuela,2008,Hugo Chávez,Far-Left,Populist
+Venezuela,2009,Hugo Chávez,Far-Left,Populist
+Venezuela,2010,Hugo Chávez,Far-Left,Populist
+Venezuela,2011,Hugo Chávez,Far-Left,Populist
+Venezuela,2012,Hugo Chávez,Far-Left,Populist
+Venezuela,2013,Nicolás Maduro Moras,Far-Left,Populist
+Venezuela,2014,Nicolás Maduro Moras,Far-Left,Populist
+Venezuela,2015,Nicolás Maduro Moras,Far-Left,Populist
+Venezuela,2016,Nicolás Maduro Moras,Far-Left,Populist
+Venezuela,2017,Nicolás Maduro Moras,Far-Left,Populist
+Venezuela,2018,Nicolás Maduro Moras,Far-Left,Populist
+Nicaragua,2007,Daniel Ortega,Far-Right,Populist
+Nicaragua,2008,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2009,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2010,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2011,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2012,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2013,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2014,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2015,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2016,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2017,Daniel Ortega,Moderate/None,Populist
+Nicaragua,2018,Daniel Ortega,Moderate/None,Populist
+Ecuador,1996,Abdalá Bucaram,Far-Right,Populist
+Ecuador,2003,Lucio Gutiérrez,Moderate/None,Populist
+Ecuador,2004,Lucio Gutiérrez,Moderate/None,Populist
+Ecuador,2007,Rafael Correa,Moderate/None,Populist
+Ecuador,2008,Rafael Correa,Far-Left,Populist
+Ecuador,2009,Rafael Correa,Far-Left,Populist
+Ecuador,2010,Rafael Correa,Far-Left,Populist
+Ecuador,2011,Rafael Correa,Far-Left,Populist
+Ecuador,2012,Rafael Correa,Far-Left,Populist
+Ecuador,2013,Rafael Correa,Far-Left,Populist
+Ecuador,2014,Rafael Correa,Far-Left,Populist
+Ecuador,2015,Rafael Correa,Far-Left,Populist
+Ecuador,2016,Rafael Correa,Far-Left,Populist
+Italy,1994,Berlusconi,NA,Populist
+Italy,2001,Berlusconi,Moderate/None,Populist
+Italy,2002,Berlusconi,Moderate/None,Populist
+Italy,2003,Berlusconi,Moderate/None,Populist
+Italy,2004,Berlusconi,Moderate/None,Populist
+Italy,2005,Berlusconi,Moderate/None,Populist
+Italy,2008,Berlusconi,Moderate/None,Populist
+Italy,2009,Berlusconi,Moderate/None,Populist
+Italy,2010,Berlusconi,Moderate/None,Populist
+Latvia,2002,Repse,Moderate/None,Populist
+Latvia,2003,Repse,Moderate/None,Populist
+Latvia,2009,Dombrovskis,Moderate/None,Populist
+Panama,1999,Mireya Moscoso,Moderate/None,Populist
+Panama,2000,Mireya Moscoso,Far-Right,Populist
+Panama,2001,Mireya Moscoso,Far-Right,Populist
+Panama,2002,Mireya Moscoso,Far-Right,Populist
+Panama,2003,Mireya Moscoso,Far-Right,Populist
+Dominican Republic,2000,Hipólito Mejía,Moderate/None,Populist
+Dominican Republic,2001,Hipólito Mejía,Moderate/None,Populist
+Dominican Republic,2002,Hipólito Mejía,Moderate/None,Populist
+Dominican Republic,2003,Hipólito Mejía,Moderate/None,Populist
+Bulgaria,2001,Sakskoburggotski,Moderate/None,Populist
+Bulgaria,2002,Sakskoburggotski,Moderate/None,Populist
+Bulgaria,2003,Sakskoburggotski,Moderate/None,Populist
+Bulgaria,2004,Sakskoburggotski,Moderate/None,Populist
+Bulgaria,2009,Borisov,Moderate/None,Populist
+Bulgaria,2010,Borisov,Moderate/None,Populist
+Bulgaria,2011,Borisov,Moderate/None,Populist
+Bulgaria,2012,Borisov,Moderate/None,Populist
+Bulgaria,2014,Borisov,Moderate/None,Populist
+Bulgaria,2015,Borisov,Moderate/None,Populist
+Bulgaria,2016,Borisov,Moderate/None,Populist
+Bulgaria,2017,Borisov,Moderate/None,Populist
+Bulgaria,2018,Borisov,Moderate/None,Populist
+Czech Republic,2017,Babis,Moderate/None,Populist
+Czech Republic,2018,Babis,Moderate/None,Populist
+Estonia,2003,Parts,Moderate/None,Populist
+Estonia,2004,Parts,Moderate/None,Populist
+Greece,2015,Tsipras,Moderate/None,Populist
+Greece,2016,Tsipras,Far-Left,Populist
+Greece,2017,Tsipras,Far-Left,Populist
+Greece,2018,Tsipras,Far-Left,Populist
+Hungary,2010,Orban,Moderate/None,Populist
+Hungary,2011,Orban,Far-Right,Populist
+Hungary,2012,Orban,Far-Right,Populist
+Hungary,2013,Orban,Far-Right,Populist
+Hungary,2014,Orban,Far-Right,Populist
+Hungary,2015,Orban,Far-Right,Populist
+Hungary,2016,Orban,Far-Right,Populist
+Hungary,2017,Orban,Far-Right,Populist
+Hungary,2018,Orban,Far-Right,Populist

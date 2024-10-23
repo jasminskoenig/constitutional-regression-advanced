@@ -1,0 +1,407 @@
+---
+title: CONSTITUTIONAL CHANGE UNDER POPULIST GOVERNMENTS
+title-slide-attributes:
+  data-background-image: images/logos_combined.png
+  data-background-size: stretch
+  data-slide-number: none
+format: revealjs
+auto-stretch: false
+---
+
+
+# Overview {.theme-section1 .h1}
+
+
+## This Paper {.smaller}
+
+#### Research Question
+
+-   How do populist parties in power use constitutional changes?
+
+::: fragment
+#### Theory
+
+-   More Constitutional Changes under populist government
+-   Effects differ with what aspect of democracy is considered
+:::
+
+::: fragment
+#### Data
+
+-   V-Party, V-Dem & Comparative Constitutions Project
+-   Country-Year Observations from 1990-2020
+:::
+
+::: fragment
+#### Research Design
+
+-   Multi-Level Model with Country-Intercepts
+:::
+
+# THEORY {.theme-section1}
+
+# DO POPULISTS USE <br> CONSTITUTIONAL CHANGES <br>  MORE FREQUENTLY?
+
+## POPULISM 
+
+<br>
+
+::: quote
+"\[Populism is an\] ideology that considers society to be ultimately separated into two **homogeneous** and antagonistic groups, 'the pure people' versus 'the corrupt elite', and which argues that politics should be an **expression of the volonté générale (general will) of the people.**"
+
+<br>
+
+Mudde (2004)
+:::
+
+## POPULISM & CONSTITUIONAL CHANGE
+
+General Will
+
+-   Constitutions are political (Blokker 2020, Mazzoleni & Voerman 2020)
+-   Mirror the will of the people (Tushnet 2015, Fabbrizi 2020)
+- Popular Sovereignty as key of democracy (Rovira Kaltwasser 2012, Mazzoleni & Voerman 2020)
+- Radical Democracy (Mudde & Rovira Kaltwasser 2013)
+
+::: fragment
+Homogenous People
+
+-   No need for stable checks & balances
+:::
+
+
+## POPULISM & CONSTITUIONAL CHANGE {visibility="uncounted"}
+
+
+::: task
+**Hypothesis 1**: Governments including populist actors are more likely to amend or renew constitutions than non-populist governments.
+:::
+
+# THE EFFECTS OF <br> CONSTITUTIONAL CHANGES <br> UNDER POPULIST GOVERNMENTS {.smaller}
+
+## HETEROGENOUS POPULISM
+
+- Exclusionary vs inclusionary populism (Mudde & Rovira Kaltwasser 2013)
+  - Exclusion of people who are not considered part of the people
+  - Inclusion of more people in society in politics
+  
+- Strong impact of host-ideology on populist demands
+- Different emphasis on participation
+
+## LIBERAL DEMOCRACY
+
+- Understanding of a **homogenous** people
+- The **general will** as the only legitimate input in the decision-making process
+  -   Majoritarianism (Blokker 2019, Urbinati 2019)
+  -   Executive Aggrandizement (De La Torre & De Lara 2020, Mudde & Rovira Kaltwasser 2013)
+      - Disregard for checks and balances
+
+
+:::fragment
+::: task
+**Hypotheses 2**: The quality of liberal democracy is decreased through governments including populist actors, independent of their host-ideology.
+:::
+:::
+
+## PARTICIPATION
+
+
+- Returning power **back to the people**
+  -   Advocate direct democracy (Bowler et al 2017)
+  -   More channels for participation
+  -  Mudde and Kaltwasser (2013) connect participation to left-wing populists
+  - But, other authors argue that right-wing populists also campaign for reforms towards more participation (Bedock et al 2022)
+
+
+:::fragment
+::: task
+**Hypotheses 3**: The quality of participation is increased through constitutional changes under governments, independent of their ideology.
+:::
+:::
+
+## EGALITARIANISM
+
+
+-   Depends on the definition of *the people*
+-   Culturally right-wing parties are likely to exclude groups from rights & participation
+-   Economically left-wing parties are likely to redistribute
+    -   Increase in resources for participation
+-   Culturally left-wing parties are likely to include ethnic minorities
+
+(Mudde & Rovira Kaltwasser 2013, Blokker 2019, Bugaric 2019)
+
+::: fragment
+::: task
+**Hypotheses 4**: The quality of egalitarianism is increased through constitutional changes under governments including a left-wing populist actor, and decreased under governments including a right-wing populist actor.
+:::
+:::
+
+# Research Design {.theme-section1}
+
+## Data {.smaller}
+
+**CCP**
+
+-   Yearly Data on Constitutional Changes
+
+**V-Dem**
+
+-   Yearly Data on Democratic Quality
+
+**V-Party**
+
+-   Party Data for Election Years
+-   Government Participation
+-   Populism Score
+-   Economic Left-Right Score
+    -   Fill Scores Until next Election
+
+**Coverage**
+
+- Latin American and European States
+-   1990 - 2020
+
+## POPULISM IN POWER
+
+Continuous V-Party Measure
+
+-   Expert Survey from 2019
+    -   Retrospective coding for earlier years
+-   Combination of People-Centrism & Anti-Elitism Score
+-   Party-level
+-   Weighted populism score calculated based on seat share
+  - Continuuous score between 0 and 1
+
+# 
+
+![](images/weightedscore.png)
+
+::: footer
+:::
+
+
+## ESTIMATION H1 {.smaller}
+
+::: fragment
+**Independent Variable**
+
+-   Weighted Populism Score per Government
+:::
+
+::: fragment
+**Dependent Variable**
+
+-   Constitutional Change Dummy
+:::
+
+::: fragment
+**Controls**
+
+-   Left-Wing Dummy
+-   Surplus Seats
+-   Coalition Dummy
+- Judicial Independence (Lag, 1)
+- High Court Compliance (Lag, 1)
+- Presidentialism Score
+-   Mean of the lagged Democracy Score over 5 Years
+:::
+
+## ESTIMATION H1 {.smaller}
+
+**Independent Variable**
+
+-   Weighted Populism Score per Government
+
+**Dependent Variable**
+
+-   Constitutional Change Dummy
+
+::: fragment
+**Interactions**
+
+-   Left-Wing Dummy x Weighted Populism Score
+- Mean of the lagged Democracy Score over 5 Years x Weighted Populism Score
+:::
+
+::: fragment
+**Mixed-Effects Model**
+
+-   Random Country Intercepts
+:::
+
+
+## RESULTS H1
+
+![](images/evnt_regression.png){width=6in fig-align="center"}
+
+::: footer
+:::
+
+## RESULTS H1 {visibility="uncounted"}
+
+![](images/evnt_likelihood.png){width=8in fig-align="center"}
+
+## ESTIMATION H2
+
+::: fragment
+**Independent Variable**
+
+-   Weighted Populism Score per Government
+:::
+
+::: fragment
+**Dependent Variable**
+
+-   V-Dem Democracy Scores
+:::
+
+## ESTIMATION H2 {visibility="uncounted"}
+
+**Independent Variable**
+
+-   Weighted Populism Score per Government
+
+**Dependent Variable**
+
+-   V-Dem Democracy Scores: [Liberal Democracy Index]{.rose}
+
+## ESTIMATION H2 {visibility="uncounted"}
+
+**Independent Variable**
+
+-   Weighted Populism Score per Government
+
+**Dependent Variable**
+
+-   V-Dem Democracy Scores: [Civil Society Index]{.rose}
+
+## ESTIMATION H2 {visibility="uncounted"}
+
+**Independent Variable**
+
+-   Weighted Populism Score per Government
+
+**Dependent Variable**
+
+-   V-Dem Democracy Scores: [Egalitarianism Index]{.rose}
+
+## ESTIMATION H2 {visibility="uncounted"}
+
+**Independent Variable**
+
+-   Weighted Populism Score per Government
+
+**Dependent Variable**
+
+-   V-Dem Democracy Scores:
+
+**Controls**
+
+-   Surplus Seats
+-   Coalition Dummy
+-   Democracy Score (Lag, 2)
+
+## ESTIMATION H2 {visibility="uncounted"}
+
+**Independent Variable**
+
+-   Weighted Populism Score per Government
+
+**Dependent Variable**
+
+-   V-Dem Democracy Scores:
+
+**Interactions**
+
+-   Left-Wing Dummy x Weighted Populism Score x Constitutional Change
+
+::: fragment
+**Mixed-Effects Model**
+
+-   Random Country Intercepts
+:::
+
+## RESULTS LIBERAL DEMOCRACY
+
+![](images/libdem_interaction.png)
+
+::: footer
+:::
+
+## RESULTS PARTICIPATION
+
+![](images/participation_interaction.png)
+
+::: footer
+:::
+
+## RESULTS EGALITARIANISM
+
+![](images/egaldem_interaction.png)
+
+::: footer
+:::
+
+
+## CONCLUSION
+
+Populism does not always use constitutional changes to decrease democratic quality
+
+- We need to look at specific democratic characteristics
+- We need to go beyond the salient cases
+- The often emphasized heterogeneous nature of populism also applies to their constitutional changes
+- We need to look at policies as well as rhetoric
+
+# THANK YOU {.theme-section1}
+
+# APPENDIX {.theme-section1}
+
+## Simultaneous Equation Model {.scrollable}
+
+![](images/sem1.png){width=8in fig-align="center"}
+
+::: footer
+:::
+
+## Simultaneous Equation Model {.scrollable}
+
+![](images/sem2.png){width=8in fig-align="center"}
+
+::: footer
+:::
+
+## BINARY POPULISM
+
+::: fragment
+Binary Measure
+
+-   Expert Survey PopuList for Europe (Rooduijn et al 2019)
+-   Author Coding for Latin America (Huber & Schimpf 2015, Ruth 2018, Ruth-Lovell/Grahn 2022)
+-   Government level
+:::
+
+# 
+
+![](images/populism_validity.png){width="1300" height="600"}
+
+::: footer
+:::
+
+## HOWEVER
+
+Not all results replicate with the binary coding of populists in government
+
+<br>
+
+Not significant but **same direction**
+
+-   Likelihood of Constitutional Change
+-   Effect on Egalitarian Democracy
+-   Effect on Participation
+
+::: fragment
+Not significant but **different direction**
+
+-   Effect on Liberal Democracy
+:::
+
